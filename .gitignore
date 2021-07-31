@@ -1,0 +1,8 @@
+__pycache__/*
+__private/*
+_diagrams/*
+icons/*
+# Ignore (generated) obj files,
+*.obj
+*.o
+_WIP.txt

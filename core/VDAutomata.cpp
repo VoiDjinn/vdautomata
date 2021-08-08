@@ -16,7 +16,7 @@ void VDAcAutomata::_bind_methods()
     ClassDB::bind_method ( D_METHOD ( "get_state", "path" ), &VDAcAutomata::get_state );
 
     ADD_PROPERTY ( PropertyInfo ( Variant::STRING, "automata_name" ), "set_automata_name", "get_automata_name" );
-    ADD_PROPERTY ( PropertyInfo ( Variant::OBJECT, "root_state", PROPERTY_HINT_RESOURCE_TYPE, "VDAcState" ), "set_automata_root", "get_automata_root" );
+    ADD_PROPERTY ( PropertyInfo ( Variant::OBJECT, "root_state", PROPERTY_HINT_RESOURCE_TYPE, "VDAcState" ), "set_root_state", "get_root_state" );
 }
 
 void VDAcAutomata::set_automata_name(String name)

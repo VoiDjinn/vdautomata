@@ -50,8 +50,10 @@ void VDAhsmCompositeState::enter(Ref<VDAcContext> context, Ref<VDAcStateStructur
     Vector<Variant> binds;
     binds.push_back(context);
     binds.push_back(structure);
-    context->connect("param_updated", this, "_handle_context_param_updated", binds);
-    context->connect("params_updated", this, "_handle_context_params_updated", binds);
+    if(call("is_listening_updates")) {
+        context->connect("param_updated", this, "_handle_context_param_updated", binds);
+        context->connect("params_updated", this, "_handle_context_params_updated", binds);
+    }
     Ref<VDAcStateData> data = context->get_state_data(structure->get_automata_path());
     Ref<VDAcStateStructure> current_structure = data->get_current_structure();
     if(current_structure.is_null() && default_substate.is_valid()) {
@@ -71,7 +73,9 @@ void VDAhsmCompositeState::update(Ref<VDAcContext> context, Ref<VDAcStateStructu
     Ref<VDAcStateStructure> current_structure = data->get_current_structure();
     Ref<VDAcState> current_state = current_structure->get_owning_state();
     if(current_state.is_valid()) {
-        current_state->call("update", context, current_structure, param, new_value, old_value);
+        if(current_state->call("is_listening_updates")) {
+            current_state->call("update", context, current_structure, param, new_value, old_value);
+        }
     }
 }
 
@@ -85,8 +89,10 @@ void VDAhsmCompositeState::exit(Ref<VDAcContext> context, Ref<VDAcStateStructure
         Ref<VDAcStateStructure> empty;
         data->set_current_structure(empty);
     }
-    context->disconnect("param_updated", this, "_handle_context_param_updated");
-    context->disconnect("params_updated", this, "_handle_context_params_updated");
+    if(call("is_listening_updates")) {
+        context->disconnect("param_updated", this, "_handle_context_param_updated");
+        context->disconnect("params_updated", this, "_handle_context_params_updated");
+    }
     call("_on_exit", context, structure);
 }
 
@@ -94,7 +100,7 @@ void VDAhsmCompositeState::add_transition(Ref<VDAhsmTransition> transition) {
     ERR_FAIL_COND_MSG(!transition.is_valid(), "Add: Transition is not valid.");
     ERR_FAIL_COND_MSG(transitions.find(transition) >= 0, "Add: Transition already contained.");
     transitions.push_back(transition);
-    this->update_transition_from_state(transition->get_from_state(), nullptr, transition);
+    update_transition_from_state(transition->get_from_state(), nullptr, transition);
 //#ifdef TOOLS_ENABLED
     Vector<Variant> binds;
     binds.push_back(transition);
@@ -147,7 +153,7 @@ void VDAhsmCompositeState::set_transitions(Vector<Ref<VDAhsmTransition>> new_tra
     }
     for(int i = 0; i < new_entries.size(); i++) {
         Ref<VDAhsmTransition> entry = new_entries[i];
-        this->add_transition(entry);
+        add_transition(entry);
     }
     if(removed > 0 || new_entries.size() > 0) {
         emit_signal("transitions_changed");
@@ -157,7 +163,7 @@ void VDAhsmCompositeState::set_transitions(Vector<Ref<VDAhsmTransition>> new_tra
 
 Vector<Ref<VDAhsmTransition>> VDAhsmCompositeState::get_transitions() const
 {
-    return this->transitions;
+    return transitions;
 }
 
 void VDAhsmCompositeState::set_transitions_open(Array new_transitions)
@@ -173,7 +179,7 @@ void VDAhsmCompositeState::set_transitions_open(Array new_transitions)
             vtransitions.push_back(new_transition);
         }
     }
-    this->set_transitions(vtransitions);
+    set_transitions(vtransitions);
 }
 
 Array VDAhsmCompositeState::get_transitions_open() const
@@ -211,16 +217,16 @@ void VDAhsmCompositeState::add_state_map_entry(StringName entry_name, Ref<VDAcSt
 
 void VDAhsmCompositeState::remove_state_map_entry(StringName entry_name, Ref<VDAcState> substate)
 {
-    if(this->state_map.has(entry_name)) {
-        Vector<Ref<VDAhsmTransition>> old_transitions = this->state_map[entry_name];
+    if(state_map.has(entry_name)) {
+        Vector<Ref<VDAhsmTransition>> old_transitions = state_map[entry_name];
         for(int i = 0; i < old_transitions.size(); i++) {
             Ref<VDAhsmTransition> old_transition = old_transitions[i];
-            this->transitions.erase(old_transition);
+            transitions.erase(old_transition);
         }
-        this->state_map.erase(entry_name);
+        state_map.erase(entry_name);
     }
-    if(this->default_substate == substate || this->substates.size() == 0) {
-        this->set_default_substate(nullptr);
+    if(default_substate == substate || substates.size() == 0) {
+        set_default_substate(nullptr);
     }
 }
 
@@ -235,7 +241,7 @@ void VDAhsmCompositeState::update_transition_from_state(Ref<VDAcState> new_state
     }
     ERR_FAIL_COND_MSG(!new_state.is_valid(), "Update: No valid from state set.");
     if(substates.find(new_state) < 0) {
-        this->add_substate(new_state);
+        add_substate(new_state);
         WARN_PRINT("Update: Non-contained from state added to substates.");
     }
     StringName state_name = new_state->get_state_ident();
@@ -250,21 +256,21 @@ void VDAhsmCompositeState::update_transition_from_state(Ref<VDAcState> new_state
 
 void VDAhsmCompositeState::set_default_substate(Ref<VDAcState> substate)
 {
-    if(substate != this->default_substate) {
-        if(substate.is_valid() && this->substates.find(substate) < 0) {
-            this->add_substate(substate);
+    if(substate != default_substate) {
+        if(substate.is_valid() && substates.find(substate) < 0) {
+            add_substate(substate);
             WARN_PRINT("Set default substate: Added substate to list.");
         }
-        Ref<VDAcState> old_state = this->default_substate;
-        this->default_substate = substate;
-        this->emit_signal("default_substate_changed", substate, old_state);
+        Ref<VDAcState> old_state = default_substate;
+        default_substate = substate;
+        emit_signal("default_substate_changed", substate, old_state);
         property_list_changed_notify();
     }
 }
 
 Ref<VDAcState> VDAhsmCompositeState::get_default_substate() const
 {
-    return this->default_substate;
+    return default_substate;
 }
 
 bool VDAhsmCompositeState::is_valid_state_map_entry(Ref<VDAcState> substate)
@@ -273,7 +279,7 @@ bool VDAhsmCompositeState::is_valid_state_map_entry(Ref<VDAcState> substate)
         WARN_PRINT("Non-valid substate. State map will not be changed.");
         return false;
     }
-    if(!this->is_substate_unique(substate)) {
+    if(!is_substate_unique(substate)) {
         WARN_PRINT("Non-unique substate. State map will not be changed.");
         return false;
     }
@@ -284,10 +290,10 @@ void VDAhsmCompositeState::_on_substate_added(Ref<VDAcState> substate)
 {
     Vector<Variant> binds;
     binds.push_back(substate);
-    if(this->is_valid_state_map_entry(substate)) {
-        this->add_state_map_entry(substate->get_state_ident(), substate);
-        if(this->default_substate.is_null()) {
-            this->set_default_substate(substate);
+    if(is_valid_state_map_entry(substate)) {
+        add_state_map_entry(substate->get_state_ident(), substate);
+        if(default_substate.is_null()) {
+            set_default_substate(substate);
             property_list_changed_notify();
         }
     }
@@ -295,24 +301,24 @@ void VDAhsmCompositeState::_on_substate_added(Ref<VDAcState> substate)
 
 void VDAhsmCompositeState::_on_substate_removed(Ref<VDAcState> substate)
 {
-    this->remove_state_map_entry(substate->get_state_ident(), substate);
+    remove_state_map_entry(substate->get_state_ident(), substate);
 }
 
 void VDAhsmCompositeState::_handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure)
 {
     call("update", context, structure, param, new_value, old_value);
-    this->_internal_transition(context, structure);
+    _internal_transition(context, structure);
 }
 
 void VDAhsmCompositeState::_handle_context_params_updated(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure)
 {
     call("update", context, structure);
-    this->_internal_transition(context, structure);
+    _internal_transition(context, structure);
 }
 
 void VDAhsmCompositeState::_internal_transition(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure)
 {
-    Ref<VDAhsmTransition> transition = this->get_viable_transition(context, structure);
+    Ref<VDAhsmTransition> transition = get_viable_transition(context, structure);
     if(transition.is_valid()) {
         transition->transit(context, structure);
     }
@@ -391,18 +397,18 @@ bool VDAhsmTransition::_can_transit(Ref<VDAcContext> context, Ref<VDAcStateStruc
 
 void VDAhsmTransition::set_transition_delegate(Ref<FuncRef> delegate)
 {
-    this->transition_delegate = delegate;
+    transition_delegate = delegate;
     property_list_changed_notify();
 }
 
 Ref<FuncRef> VDAhsmTransition::get_transition_delegate() const
 {
-    return this->transition_delegate;
+    return transition_delegate;
 }
 
 void VDAhsmTransition::set_from_state(Ref<VDAcState> state)
 {
-    this->from = state;
+    from = state;
     property_list_changed_notify();
 }
 
@@ -413,7 +419,7 @@ Ref<VDAcState> VDAhsmTransition::get_from_state() const
 
 void VDAhsmTransition::set_to_state(Ref<VDAcState> state)
 {
-    this->to = state;
+    to = state;
     property_list_changed_notify();
 }
 
@@ -461,35 +467,35 @@ void VDAhsmTransition::set_conditions_open(Array conditions)
         Ref<VDAcCondition> condition = conditions[i];
         vconditions.push_back(condition);
     }
-    this->set_conditions(vconditions);
+    set_conditions(vconditions);
 }
 
 Vector<Ref<VDAcCondition>> VDAhsmTransition::get_conditions() const
 {
-    return this->conditions;
+    return conditions;
 }
 
 Array VDAhsmTransition::get_conditions_open()
 {
     Array oconditions;
-    for(int i = 0; i < this->conditions.size(); i++) {
-        Ref<VDAcCondition> condition = this->conditions[i];
+    for(int i = 0; i < conditions.size(); i++) {
+        Ref<VDAcCondition> condition = conditions[i];
         oconditions.append(condition);
     }
     return oconditions;
 }
 
 void VDAhsmTransition::set_transition_name ( String name ) {
-    this->transition_name = name;
+    transition_name = name;
 }
 
 String VDAhsmTransition::get_transition_name() const {
     String name = "";
-    if(!this->transition_name.empty()) {
-        name = this->transition_name;
+    if(!transition_name.empty()) {
+        name = transition_name;
     }
     else {
-        name = this->get_class();
+        name = get_class();
     }
     return name;
 }
@@ -511,37 +517,37 @@ VDAhsmNode::VDAhsmNode() {}
 void VDAhsmNode::_bind_methods() {}
 
 void VDAhsmNode::add_transition ( Ref<VDAcState> state, int trigger ) {
-    if(!this->transitions.has(trigger)) {
-        this->transitions.set(trigger, state);
+    if(!transitions.has(trigger)) {
+        transitions.set(trigger, state);
     }
 }
 
 HashMap<int, Ref<VDAcState>> VDAhsmNode::get_transitions() const {
-    return this->transitions;
+    return transitions;
 }
 
 void VDAhsmNode::set_node_state ( Ref<VDAcState> state ) {
-    this->node_state = state;
+    node_state = state;
 }
 
 Ref<VDAcState> VDAhsmNode::get_node_state() const {
-    return this->node_state;
+    return node_state;
 }
 
 void VDAhsmNode::set_owning_state ( Ref<VDAcState> state ) {
-    this->owning_state = state;
+    owning_state = state;
 }
 
 Ref<VDAcState> VDAhsmNode::get_owning_state() const {
-    return this->owning_state;
+    return owning_state;
 }
 
 void VDAhsmNode::set_node_name ( String name ) {
-    this->node_name = name;
+    node_name = name;
 }
 
 String VDAhsmNode::get_node_name() const {
-    return this->node_name;
+    return node_name;
 }
 
 

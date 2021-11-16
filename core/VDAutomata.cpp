@@ -379,8 +379,8 @@ void VDAcStateStructure::_bind_methods()
 // protected
 void VDAcStateStructure::set_owning_automata(Ref<VDAcAutomata> automata)
 {
-    if(this->owning_automata != automata) {
-        this->owning_automata = automata;
+    if(owning_automata != automata) {
+        owning_automata = automata;
         emit_signal("owning_automata_changed", automata);
         property_list_changed_notify();
     }
@@ -388,8 +388,8 @@ void VDAcStateStructure::set_owning_automata(Ref<VDAcAutomata> automata)
 
 void VDAcStateStructure::set_parent_structure(Ref<VDAcStateStructure> structure)
 {
-    if(this->parent_structure != structure) {
-        this->parent_structure = structure;
+    if(parent_structure != structure) {
+        parent_structure = structure;
         emit_signal("parent_structure_changed", structure);
         property_list_changed_notify();
     }
@@ -397,19 +397,19 @@ void VDAcStateStructure::set_parent_structure(Ref<VDAcStateStructure> structure)
 
 void VDAcStateStructure::set_child_structure(Ref<VDAcStateStructure> structure, StringName path)
 {
-    this->children_structures.set(path, structure);
-    if(!this->children_structure_paths.find(path)) {
-        this->children_structure_paths.push_back(path);
+    children_structures.set(path, structure);
+    if(!children_structure_paths.find(path)) {
+        children_structure_paths.push_back(path);
     }
     property_list_changed_notify();
 }
 
 void VDAcStateStructure::remove_child_structure(StringName path)
 {
-    if(this->children_structures.has(path)) {
-        this->children_structures.erase(path);
-        if(this->children_structure_paths.find(path)) {
-            this->children_structure_paths.erase(path);
+    if(children_structures.has(path)) {
+        children_structures.erase(path);
+        if(children_structure_paths.find(path)) {
+            children_structure_paths.erase(path);
         }
         property_list_changed_notify();
     }
@@ -465,7 +465,7 @@ void VDAcStateStructure::set_children_structures_open(Dictionary structures)
 // public
 StringName VDAcStateStructure::get_automata_path() const
 {
-    return this->automata_path;
+    return automata_path;
 }
 
 void VDAcStateStructure::set_owning_state(Ref<VDAcState> state)
@@ -479,33 +479,33 @@ void VDAcStateStructure::set_owning_state(Ref<VDAcState> state)
 
 Ref<VDAcState> VDAcStateStructure::get_owning_state() const
 {
-    return this->state;
+    return state;
 }
 
 Ref<VDAcAutomata> VDAcStateStructure::get_owning_automata()
 {
-    return this->owning_automata;
+    return owning_automata;
 }
 
 Ref<VDAcStateStructure> VDAcStateStructure::get_child_structure(StringName path) const
 {
     Ref<VDAcStateStructure> structure;
-    if(this->has_child_structure_path(path)) {
-        structure = this->children_structures.get(path);
+    if(has_child_structure_path(path)) {
+        structure = children_structures.get(path);
     }
     return structure;
 }
 
 HashMap<StringName, Ref<VDAcStateStructure>> VDAcStateStructure::get_children_structures() const
 {
-    return this->children_structures;
+    return children_structures;
 }
 
 Dictionary VDAcStateStructure::get_children_structures_open() const {
     Dictionary ostructures;
-    for(int i = 0; i < this->children_structure_paths.size(); i++) {
-        StringName path = this->children_structure_paths[i];
-        Ref<VDAcStateStructure> structure = this->children_structures[path];
+    for(int i = 0; i < children_structure_paths.size(); i++) {
+        StringName path = children_structure_paths[i];
+        Ref<VDAcStateStructure> structure = children_structures[path];
         ostructures[path] = structure;
     }
     return ostructures;
@@ -513,28 +513,28 @@ Dictionary VDAcStateStructure::get_children_structures_open() const {
 
 List<StringName> VDAcStateStructure::get_children_structure_paths() const
 {
-    return this->children_structure_paths;
+    return children_structure_paths;
 }
 
 bool VDAcStateStructure::has_child_structure(Ref<VDAcStateStructure> structure) const
 {
-    return structure.is_valid() && structure->get_owning_state().is_valid() && this->has_child_structure_path(structure->get_owning_state()->get_state_ident());
+    return structure.is_valid() && structure->get_owning_state().is_valid() && has_child_structure_path(structure->get_owning_state()->get_state_ident());
 }
 
 bool VDAcStateStructure::has_child_structure_path(StringName path) const
 {
-    return this->children_structures.has(path);
+    return children_structures.has(path);
 }
 
 Ref<VDAcStateStructure> VDAcStateStructure::get_parent_structure() const {
-    return this->parent_structure;
+    return parent_structure;
 }
 
 void VDAcStateStructure::set_display_name(String name)
 {
-    if(this->display_name != name) {
-        String old_name = this->display_name;
-        this->display_name = name;
+    if(display_name != name) {
+        String old_name = display_name;
+        display_name = name;
         emit_signal("display_name_changed", name, old_name);
         property_list_changed_notify();
     }
@@ -542,5 +542,5 @@ void VDAcStateStructure::set_display_name(String name)
 
 String VDAcStateStructure::get_display_name() const
 {
-    return this->display_name;
+    return display_name;
 }

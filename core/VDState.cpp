@@ -38,6 +38,8 @@ void VDAcState::_bind_methods() {
 
     ClassDB::bind_method(D_METHOD("set_has_tick", "has_tick"), &VDAcState::set_has_tick);
     ClassDB::bind_method(D_METHOD("has_tick"), &VDAcState::has_tick);
+    ClassDB::bind_method(D_METHOD("set_listening_updates", "listening"), &VDAcState::set_listening_updates);
+    ClassDB::bind_method(D_METHOD("is_listening_updates"), &VDAcState::is_listening_updates);
     ClassDB::bind_method(D_METHOD("set_debug_mode", "mode"), &VDAcState::set_debug_mode);
     ClassDB::bind_method(D_METHOD("is_debug_mode"), &VDAcState::is_debug_mode);
 
@@ -57,10 +59,12 @@ void VDAcState::_bind_methods() {
     BIND_VMETHOD (MethodInfo ("_handle_context_param_updated", PropertyInfo (Variant::NIL, "param"),PropertyInfo (Variant::NIL, "new_value"),PropertyInfo (Variant::NIL, "old_value"), PropertyInfo (Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo (Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
     BIND_VMETHOD (MethodInfo ("_handle_context_params_updated", PropertyInfo (Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo (Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
     BIND_VMETHOD (MethodInfo ("has_tick"));
+    BIND_VMETHOD (MethodInfo ("is_listening_updates"));
 
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "state_ident", PROPERTY_HINT_NONE, ""/*, PROPERTY_USAGE_NOEDITOR */), "set_state_ident", "get_state_ident");
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "state_name"), "set_state_name", "get_state_name");
     ADD_PROPERTY (PropertyInfo(Variant::BOOL, "has_tick"), "set_has_tick", "has_tick");
+    ADD_PROPERTY (PropertyInfo(Variant::BOOL, "listening_updates"), "set_listening_updates", "is_listening_updates");
     ADD_PROPERTY (PropertyInfo(Variant::BOOL, "debug_mode"), "set_debug_mode", "is_debug_mode");
 
     ADD_SIGNAL(MethodInfo("state_name_changed", PropertyInfo(Variant::STRING, "new_name"), PropertyInfo(Variant::STRING, "old_name")));
@@ -84,11 +88,13 @@ void VDAcState::init ( Ref<VDAcContext> context, Ref<VDAcStateStructure> structu
 void VDAcState::enter ( Ref<VDAcContext> context, Ref<VDAcStateStructure> structure ) {
     call ( "_pre_enter", context, structure );
     context->add_active_structure(structure);
-    Vector<Variant> binds;
-    binds.push_back(context);
-    binds.push_back(structure);
-    context->connect("param_updated", this, "_handle_context_param_updated", binds);
-    context->connect("params_updated", this, "_handle_context_params_updated", binds);
+    if(call("is_listening_updates")) {
+        Vector<Variant> binds;
+        binds.push_back(context);
+        binds.push_back(structure);
+        context->connect("param_updated", this, "_handle_context_param_updated", binds);
+        context->connect("params_updated", this, "_handle_context_params_updated", binds);
+    }
     call ( "_on_enter", context, structure );
 }
 void VDAcState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param, Variant new_value, Variant old_value) {
@@ -98,8 +104,10 @@ void VDAcState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structu
 void VDAcState::exit ( Ref<VDAcContext> context, Ref<VDAcStateStructure> structure ) {
     call ( "_pre_exit", context, structure );
     context->remove_active_structure(structure);
-    context->disconnect("param_updated", this, "_handle_context_param_updated");
-    context->disconnect("params_updated", this, "_handle_context_params_updated");
+    if(call("is_listening_updates")) {
+        context->disconnect("param_updated", this, "_handle_context_param_updated");
+        context->disconnect("params_updated", this, "_handle_context_params_updated");
+    }
     call ( "_on_exit", context, structure );
 }
 
@@ -147,16 +155,16 @@ StringName VDAcState::get_state_ident() const
 }
 
 void VDAcState::set_state_name ( String name ) {
-    if(this->state_name != name) {
-        String old_name = this->state_name;
-        this->state_name = name;
-        this->emit_signal("state_name_changed", name, old_name);
+    if(state_name != name) {
+        String old_name = state_name;
+        state_name = name;
+        emit_signal("state_name_changed", name, old_name);
         property_list_changed_notify();
     }
 }
 
 String VDAcState::get_state_name() const {
-    return this->state_name;
+    return state_name;
 }
 
 String VDAcState::to_state_string() const {
@@ -182,14 +190,24 @@ bool VDAcState::has_tick() const
     return bhas_tick;
 }
 
+void VDAcState::set_listening_updates(bool listening)
+{
+    bis_listening_updates = listening;
+}
+
+bool VDAcState::is_listening_updates() const
+{
+    return bis_listening_updates;
+}
+
 void VDAcState::set_debug_mode(bool mode)
 {
-    this->debug_mode = mode;
+    bis_debug_mode = mode;
 }
 
 bool VDAcState::is_debug_mode() const
 {
-    return this->debug_mode;
+    return bis_debug_mode;
 }
 ////////////////////
 // VDAcParentState
@@ -272,7 +290,9 @@ void VDAcParentState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> s
     for(int i = 0; i < keys.size(); i++) {
         Ref<VDAcStateStructure> substructure = sub_structures[keys[i]];
         Ref<VDAcState> substate = substructure->get_owning_state();
-        substate->call("update", context, substructure, param, new_value, old_value);
+        if(substate->call("is_listening_updates")) {
+            substate->call("update", context, substructure, param, new_value, old_value);
+        }
     }
 }
 
@@ -317,8 +337,8 @@ void VDAcParentState::add_substate(Ref<VDAcState> substate) {
 void VDAcParentState::remove_substate(Ref<VDAcState> substate)
 {
     ERR_FAIL_COND_MSG(!substate.is_valid(),"Remove: Substate is not valid.");
-    if(this->substates.find(substate) >= 0) {
-        this->substates.erase(substate);
+    if(substates.find(substate) >= 0) {
+        substates.erase(substate);
         call("_on_substate_removed", substate);
         emit_signal("substate_removed", substate);
         property_list_changed_notify();
@@ -353,7 +373,7 @@ void VDAcParentState::set_substates(Vector<Ref<VDAcState>> new_substates)
     }
     for(int i = 0; i < new_entries.size(); i++) {
         Ref<VDAcState> entry = new_entries[i];
-        this->add_substate(entry);
+        add_substate(entry);
     }
     if(removed > 0 || new_entries.size() > 0) {
         emit_signal("substates_changed");
@@ -379,7 +399,7 @@ void VDAcParentState::set_substates_open(Array new_substates)
             new_substate_vector.push_back(new_substate);
         }
     }
-    this->set_substates(new_substate_vector);
+    set_substates(new_substate_vector);
 }
 
 Array VDAcParentState::get_substates_open() const
@@ -398,8 +418,8 @@ bool VDAcParentState::is_substate_unique(Ref<VDAcState> substate)
         ERR_PRINT_ONCE("Unique substate: Non-valid substate.");
         return false;
     }
-    for(int i = 0; i < this->substates.size(); i++) {
-        Ref<VDAcState> cur_substate = this->substates[i];
+    for(int i = 0; i < substates.size(); i++) {
+        Ref<VDAcState> cur_substate = substates[i];
         if(cur_substate != substate && cur_substate->get_state_ident() == substate->get_state_ident()) {
             return false;
         }
@@ -539,7 +559,7 @@ void VDAcContext::set_context_params(HashMap<Variant, Variant, VariantHasher> ne
 
 HashMap<Variant, Variant, VariantHasher> VDAcContext::get_context_params() const
 {
-    return this->params;
+    return params;
 }
 
 void VDAcContext::set_context_params_open(Dictionary new_params)
@@ -561,7 +581,7 @@ Dictionary VDAcContext::get_context_params_open() const
     params.get_key_list(&keys);
     for(int i = 0; i < keys.size(); i++) {
         const Variant &key = keys[i];
-        const Variant &value = this->params[key];
+        const Variant &value = params[key];
         dict[key] = value;
     }
     return dict;
@@ -569,34 +589,34 @@ Dictionary VDAcContext::get_context_params_open() const
 
 void VDAcContext::set_context_value(const Variant &key, const Variant &value, bool notify) {
     Variant old_value;
-    if(!this->param_keys.find(key)) {
-        this->param_keys.push_back(key);
+    if(!param_keys.find(key)) {
+        param_keys.push_back(key);
     } else {
-        old_value = this->params[key];
+        old_value = params[key];
     }
     if(value != old_value) {
-        this->params[key] = value;
+        params[key] = value;
         if(notify) emit_signal("param_updated", key, value, old_value);
     }
 }
 
 Variant VDAcContext::get_context_value (const Variant &key ) const {
-    return this->params[key];
+    return params[key];
 }
 
 bool VDAcContext::has_context_param(const Variant &key)
 {
-    return this->param_keys.find(key);
+    return param_keys.find(key);
 }
 
 void VDAcContext::set_owning_automata(Ref<VDAcAutomata> automata)
 {
-    this->owning_automata = automata;
+    owning_automata = automata;
 }
 
 Ref<VDAcAutomata> VDAcContext::get_owning_automata() const
 {
-    return this->owning_automata;
+    return owning_automata;
 }
 
 void VDAcContext::set_blackboard ( Ref<VDAcBlackboard> blackboard ) {
@@ -604,7 +624,7 @@ void VDAcContext::set_blackboard ( Ref<VDAcBlackboard> blackboard ) {
 }
 
 Ref<VDAcBlackboard> VDAcContext::get_blackboard() const {
-    return this->blackboard;
+    return blackboard;
 }
 
 void VDAcContext::set_delta ( float delta ) {
@@ -612,7 +632,7 @@ void VDAcContext::set_delta ( float delta ) {
 }
 
 float VDAcContext::get_delta() const {
-    return this->delta;
+    return delta;
 }
 
 void VDAcContext::add_active_structure ( Ref<VDAcStateStructure> structure ) {
@@ -624,26 +644,26 @@ void VDAcContext::add_active_structure ( Ref<VDAcStateStructure> structure ) {
 }
 
 void VDAcContext::remove_active_structure ( Ref<VDAcStateStructure> structure ) {
-    int state_index = this->active_structures.find(structure);
+    int state_index = active_structures.find(structure);
     if(state_index >= 0) {
-        this->active_structures.remove(state_index);
+        active_structures.remove(state_index);
         emit_signal("active_structure_removed", structure);
     }
 }
 
 // TODO: rework
 void VDAcContext::set_active_structures ( Vector<Ref<VDAcStateStructure>> structures ) {
-    this->active_structures = structures;
+    active_structures = structures;
 }
 
 Vector<Ref<VDAcStateStructure>> VDAcContext::get_active_structures() const {
-    return this->active_structures;
+    return active_structures;
 }
 
 Array VDAcContext::get_active_structures_open() const {
     Array open_state_structures;
-    for(int i = 0; i < this->active_structures.size(); i++) {
-        Ref<VDAcStateStructure> state = this->active_structures[i];
+    for(int i = 0; i < active_structures.size(); i++) {
+        Ref<VDAcStateStructure> state = active_structures[i];
         open_state_structures.push_back ( state );
     }
     return open_state_structures;
@@ -664,21 +684,21 @@ void VDAcContext::set_state_data ( StringName state_path, Ref<VDAcStateData> dat
 
 Ref<VDAcStateData> VDAcContext::get_state_data ( StringName state_path ) const {
     Ref<VDAcStateData> data;
-    if(this->state_datas.has(state_path)) {
-        data = this->state_datas.get(state_path);
+    if(state_datas.has(state_path)) {
+        data = state_datas.get(state_path);
     }
     return data;
 }
 
 void VDAcContext::remove_state_data(StringName state_path)
 {
-    if(this->state_datas.has(state_path)) {
-        this->state_datas.erase(state_path);
+    if(state_datas.has(state_path)) {
+        state_datas.erase(state_path);
     }
 }
 
 HashMap<StringName, Ref<VDAcStateData>> VDAcContext::get_state_datas() const {
-    return this->state_datas;
+    return state_datas;
 }
 
 Dictionary VDAcContext::get_state_datas_open() const {
@@ -698,5 +718,6 @@ Dictionary VDAcContext::get_state_datas_open() const {
 VDAcBlackboard::VDAcBlackboard() {}
 
 void VDAcBlackboard::_bind_methods() {}
+
 
 

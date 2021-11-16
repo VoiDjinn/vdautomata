@@ -3,9 +3,9 @@
 VDAcNode::VDAcNode()
 {
     Ref<VDAcContext> initial_context = call("_create_context");
-    this->set_automata_context(initial_context);
-    this->set_process ( false );
-    this->set_physics_process ( false );
+    set_automata_context(initial_context);
+    set_process ( false );
+    set_physics_process ( false );
 }
 
 void VDAcNode::_bind_methods()
@@ -49,14 +49,14 @@ void VDAcNode::_notification ( int p_what )
 {
     switch ( p_what ) {
     case NOTIFICATION_READY: {
-        if(this->is_autostarting() && !this->is_running()) {
-            this->start();
+        if(is_autostarting() && !is_running()) {
+            start();
         }
     }
     break;
     case NOTIFICATION_PROCESS: {
         context->set_delta ( get_process_delta_time() );
-        Vector<Ref<VDAcStateStructure>> active_state_structures = this->context->get_active_structures();
+        Vector<Ref<VDAcStateStructure>> active_state_structures = context->get_active_structures();
         for ( int i = 0; i < active_state_structures.size(); i++ ) {
             Ref<VDAcStateStructure> structure = active_state_structures[i];
             structure->get_owning_state()->call("tick", context, structure );
@@ -65,7 +65,7 @@ void VDAcNode::_notification ( int p_what )
     break;
     case NOTIFICATION_PHYSICS_PROCESS: {
         context->set_delta ( get_physics_process_delta_time() );
-        Vector<Ref<VDAcStateStructure>> active_state_structures = this->context->get_active_structures();
+        Vector<Ref<VDAcStateStructure>> active_state_structures = context->get_active_structures();
         for ( int i = 0; i < active_state_structures.size(); i++ ) {
             Ref<VDAcStateStructure> structure = active_state_structures[i];
             structure->get_owning_state()->call("tick", context, structure );
@@ -77,18 +77,18 @@ void VDAcNode::_notification ( int p_what )
 
 void VDAcNode::start()
 {
-    ERR_FAIL_COND_MSG ( this->automata.is_null(), "Start: Automata is null." );
-    ERR_FAIL_COND_MSG ( this->context.is_null(), "Start: Context is null." );
-    ERR_FAIL_COND_MSG(!this->is_inside_tree(), "Start: Node not inside scene tree.");
+    ERR_FAIL_COND_MSG ( automata.is_null(), "Start: Automata is null." );
+    ERR_FAIL_COND_MSG ( context.is_null(), "Start: Context is null." );
+    ERR_FAIL_COND_MSG(!is_inside_tree(), "Start: Node not inside scene tree.");
     if(!is_running()) {
-        Ref<VDAcState> root = this->automata->get_root_state();
-        Ref<VDAcStateStructure> root_structure = this->automata->get_root_structure();
+        Ref<VDAcState> root = automata->get_root_state();
+        Ref<VDAcStateStructure> root_structure = automata->get_root_structure();
         ERR_FAIL_COND_MSG ( root.is_null(), "Start: Root state is null." );
-        this->context->set_owning_automata(this->automata);
-        this->context->call_deferred("_setup");
+        context->set_owning_automata(automata);
+        context->call_deferred("_setup");
         call_deferred ( "_pre_start" );
-        root->call_deferred("init", this->context, root_structure);
-        root->call_deferred("enter", this->context, root_structure);
+        root->call_deferred("init", context, root_structure);
+        root->call_deferred("enter", context, root_structure);
         if(root->call("has_tick")) {
             set_process ( tick_mode == ALL || tick_mode == PROCESS );
             set_physics_process ( tick_mode == ALL || tick_mode == PHYSICS_PROCESS );
@@ -101,18 +101,18 @@ void VDAcNode::start()
 
 void VDAcNode::stop()
 {
-    ERR_FAIL_COND_MSG ( this->automata.is_null(), "Stop: Automata is null." );
-    ERR_FAIL_COND_MSG ( this->context.is_null(), "Stop: Context is null." );
+    ERR_FAIL_COND_MSG ( automata.is_null(), "Stop: Automata is null." );
+    ERR_FAIL_COND_MSG ( context.is_null(), "Stop: Context is null." );
     if ( is_running() ) {
-        Ref<VDAcState> root = this->automata->get_root_state();
-        Ref<VDAcStateStructure> root_structure = this->automata->get_root_structure();
+        Ref<VDAcState> root = automata->get_root_state();
+        Ref<VDAcStateStructure> root_structure = automata->get_root_structure();
         ERR_FAIL_COND_MSG ( root.is_null(), "Stop: Root state is null." );
         call_deferred ( "_pre_stop" );
-        root->call_deferred("exit", this->context, root_structure);
-        root->call_deferred("deinit", this->context, root_structure);
+        root->call_deferred("exit", context, root_structure);
+        root->call_deferred("deinit", context, root_structure);
         set_process ( false );
         set_physics_process ( false );
-        this->context->call_deferred("_undo");
+        context->call_deferred("_undo");
         call_deferred ( "_on_stop" );
     } else {
         WARN_PRINT ("Stop: Is not running.");
@@ -137,7 +137,7 @@ Ref<VDAcContext> VDAcNode::_create_context()
 void VDAcNode::set_automata ( Ref<VDAcAutomata> automata )
 {
     ERR_FAIL_COND_MSG(is_running(), "Set automata: Node is running.");
-    if(this->automata != automata) {
+    if(automata != automata) {
         Ref<VDAcAutomata> old_automata;
         this->automata = automata;
         emit_signal("automata_changed", automata, old_automata);
@@ -146,13 +146,13 @@ void VDAcNode::set_automata ( Ref<VDAcAutomata> automata )
 
 Ref<VDAcAutomata> VDAcNode::get_automata ( )
 {
-    return this->automata;
+    return automata;
 }
 
 void VDAcNode::set_automata_context ( Ref<VDAcContext> context )
 {
     ERR_FAIL_COND_MSG(is_running(), "Set context: Node is running.");
-    if(this->context != context) {
+    if(context != context) {
         Ref<VDAcContext> old_context;
         this->context = context;
         emit_signal("context_changed", context, old_context);
@@ -161,26 +161,26 @@ void VDAcNode::set_automata_context ( Ref<VDAcContext> context )
 
 Ref<VDAcContext> VDAcNode::get_automata_context() const
 {
-    return this->context;
+    return context;
 }
 
 void VDAcNode::set_tick_mode ( VDAcNode::VDATickMode mode )
 {
     ERR_FAIL_COND_MSG(is_running(), "Set tick mode: Node is running.");
-    this->tick_mode = mode;
+    tick_mode = mode;
 }
 
 VDAcNode::VDATickMode VDAcNode::get_tick_mode() const
 {
-    return this->tick_mode;
+    return tick_mode;
 }
 
 void VDAcNode::set_is_autostarting(bool autostart)
 {
-    this->bautostart = autostart;
+    bautostart = autostart;
 }
 
 bool VDAcNode::is_autostarting() const
 {
-    return this->bautostart;
+    return bautostart;
 }

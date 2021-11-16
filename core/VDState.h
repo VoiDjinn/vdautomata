@@ -16,14 +16,14 @@ class VDAcStateStructure;
 //////////
 class VDAcState : public Resource {
     GDCLASS(VDAcState, Resource);
-public:
-    bool debug_mode = false;
 protected:
     static void _bind_methods();
 
     StringName state_ident;
     String state_name;
     bool bhas_tick = true;
+    bool bis_listening_updates = true;
+    bool bis_debug_mode = false;
 
     virtual bool _on_tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _pre_init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
@@ -52,6 +52,8 @@ public:
 
     void set_has_tick(bool has_tick);
     virtual bool has_tick() const;
+    void set_listening_updates(bool listening);
+    virtual bool is_listening_updates() const;
 
     void set_state_ident(StringName ident);
     StringName get_state_ident() const;

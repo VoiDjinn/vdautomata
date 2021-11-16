@@ -56,8 +56,6 @@ void VDAcState::_bind_methods() {
 
   // Param context workflow (virtual methods)
   BIND_VMETHOD(MethodInfo("_handle_context_param_updated", PropertyInfo(Variant::NIL, "param"), PropertyInfo(Variant::NIL, "new_value"), PropertyInfo(Variant::NIL, "old_value"), PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
-  BIND_VMETHOD(MethodInfo("has_tick"));
-  BIND_VMETHOD(MethodInfo("is_listening_to_updates"));
 
   ADD_PROPERTY(PropertyInfo(Variant::STRING, "state_ident", PROPERTY_HINT_NONE, ""/*, PROPERTY_USAGE_NOEDITOR */), "set_state_ident", "get_state_ident");
   ADD_PROPERTY(PropertyInfo(Variant::STRING, "state_name"), "set_state_name", "get_state_name");
@@ -67,12 +65,11 @@ void VDAcState::_bind_methods() {
 
   ADD_SIGNAL(MethodInfo("state_name_changed", PropertyInfo(Variant::STRING, "new_name"), PropertyInfo(Variant::STRING, "old_name")));
   ADD_SIGNAL(MethodInfo("has_tick_changed", PropertyInfo(Variant::BOOL, "new_mode")));
+  ADD_SIGNAL(MethodInfo("is_listening_to_updates_changed", PropertyInfo(Variant::BOOL, "new_mode")));
 }
 
 bool VDAcState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
-  if(call("has_tick")) {
-    return call("_on_tick", context, structure);
-  }
+  if(bhas_tick) return call("_on_tick", context, structure);
   return false;
 }
 
@@ -90,11 +87,12 @@ void VDAcState::init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure
 void VDAcState::enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
   call("_pre_enter", context, structure);
   context->add_active_structure(structure);
-  if(call("is_listening_to_updates")) {
+  if(bis_listening_to_updates) {
     Vector<Variant> binds;
     binds.push_back(context);
     binds.push_back(structure);
-    context->connect("param_updated", this, "_handle_context_param_updated", binds);
+    context->connect("context_param_updated", this, "_handle_context_param_updated", binds);
+    // TODO: connect with params_changed -> DEFVAL for Variant issue
   }
   call("_on_enter", context, structure);
 }
@@ -105,7 +103,7 @@ void VDAcState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structu
 void VDAcState::exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
   call("_pre_exit", context, structure);
   context->remove_active_structure(structure);
-  if(call("is_listening_to_updates")) context->disconnect("param_updated", this, "_handle_context_param_updated");
+  if(bis_listening_to_updates) context->disconnect("context_param_updated", this, "_handle_context_param_updated");
   call("_on_exit", context, structure);
 }
 
@@ -179,7 +177,10 @@ bool VDAcState::has_tick() const {
 }
 
 void VDAcState::set_listening_to_updates(bool listening) {
-  bis_listening_to_updates = listening;
+  if(bis_listening_to_updates != listening) {
+    bis_listening_to_updates = listening;
+    emit_signal("is_listening_to_updates_changed", listening);
+  }
 }
 
 bool VDAcState::is_listening_to_updates() const {
@@ -221,14 +222,14 @@ void VDAcParentState::_bind_methods() {
 }
 
 bool VDAcParentState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
-  if(call("has_tick")) {
+  if(bhas_tick) {
     call("_on_tick", context, structure);
     HashMap<StringName, Ref<VDAcStateStructure>> substate_structures = structure->get_children_structures();
     List<StringName> keys = structure->get_children_structure_paths();
     for(int i = 0; i < keys.size(); i++) {
       Ref<VDAcStateStructure> substate_structure = substate_structures[keys[i]];
       Ref<VDAcState> substate = substate_structure->get_owning_state();
-      if(substate->call("has_tick")) substate->call("tick", context, substate_structure);
+      substate->call("tick", context, substate_structure);
     }
     return true;
   } else return false;
@@ -273,7 +274,7 @@ void VDAcParentState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> s
   for(int i = 0; i < keys.size(); i++) {
     Ref<VDAcStateStructure> substructure = sub_structures[keys[i]];
     Ref<VDAcState> substate = substructure->get_owning_state();
-    if(substate->call("is_listening_to_updates")) substate->call("update", context, substructure, param, new_value, old_value);
+    substate->call("update", context, substructure, param, new_value, old_value);
   }
 }
 
@@ -478,8 +479,8 @@ void VDAcContext::_bind_methods() {
 
   ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "params"), "set_context_params", "get_context_params");
 
-  ADD_SIGNAL(MethodInfo("param_updated", PropertyInfo(Variant::NIL, "param"), PropertyInfo(Variant::NIL, "new_value"), PropertyInfo(Variant::NIL, "old_value")));
-  ADD_SIGNAL(MethodInfo("params_updated"));
+  ADD_SIGNAL(MethodInfo("context_param_updated", PropertyInfo(Variant::NIL, "param"), PropertyInfo(Variant::NIL, "new_value"), PropertyInfo(Variant::NIL, "old_value")));
+  ADD_SIGNAL(MethodInfo("context_params_changed"));
   ADD_SIGNAL(MethodInfo("state_data_changed", PropertyInfo(Variant::OBJECT, "new_data"), PropertyInfo(Variant::OBJECT, "old_data"), PropertyInfo(Variant::STRING, "path")));
   ADD_SIGNAL(MethodInfo("state_data_added", PropertyInfo(Variant::NIL, "data"), PropertyInfo(Variant::STRING, "path")));
   ADD_SIGNAL(MethodInfo("active_structure_added", PropertyInfo(Variant::NIL, "added_state_structure")));
@@ -524,7 +525,7 @@ void VDAcContext::set_context_params(HashMap<Variant, Variant, VariantHasher> ne
     params.set(new_key, new_param);
   }
   if(removed > 0 || new_entries.size() > 0) {
-    emit_signal("params_updated");
+    emit_signal("context_params_changed");
     property_list_changed_notify();
   }
 }
@@ -565,7 +566,7 @@ void VDAcContext::set_context_value(const Variant &key, const Variant &value, bo
   }
   if(value != old_value) {
     params[key] = value;
-    if(notify) emit_signal("param_updated", key, value, old_value);
+    if(notify) emit_signal("context_param_updated", key, value, old_value);
   }
 }
 

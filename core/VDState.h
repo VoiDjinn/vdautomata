@@ -49,9 +49,9 @@ public:
     virtual void deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
 
     void set_has_tick(bool has_tick);
-    virtual bool has_tick() const;
+    bool has_tick() const;
     void set_listening_to_updates(bool listening);
-    virtual bool is_listening_to_updates() const;
+    bool is_listening_to_updates() const;
 
     void set_state_ident(StringName ident);
     StringName get_state_ident() const;

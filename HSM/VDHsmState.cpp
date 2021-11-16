@@ -35,12 +35,12 @@ void VDAhsmCompositeState::_bind_methods() {
 }
 
 bool VDAhsmCompositeState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
-  if(call("has_tick")) {
+  if(bhas_tick) {
     call("_on_tick", context, structure);
     Ref<VDAcStateData> data = context->get_state_data(structure->get_automata_path());
     Ref<VDAcStateStructure> child_structure = data->get_current_structure();
     Ref<VDAcState> current_state = child_structure->get_owning_state();
-    if(current_state->call("has_tick")) return current_state->call("tick", context, child_structure);
+    return current_state->call("tick", context, child_structure);
   }
   return false;
 }
@@ -50,7 +50,7 @@ void VDAhsmCompositeState::enter(Ref<VDAcContext> context, Ref<VDAcStateStructur
   Vector<Variant> binds;
   binds.push_back(context);
   binds.push_back(structure);
-  if(call("is_listening_to_updates")) context->connect("param_updated", this, "_handle_context_param_updated", binds);
+  if(bis_listening_to_updates) context->connect("context_param_updated", this, "_handle_context_param_updated", binds);
   Ref<VDAcStateData> data = context->get_state_data(structure->get_automata_path());
   Ref<VDAcStateStructure> current_structure = data->get_current_structure();
   if(current_structure.is_null() && default_substate.is_valid()) {
@@ -70,9 +70,7 @@ void VDAhsmCompositeState::update(Ref<VDAcContext> context, Ref<VDAcStateStructu
   Ref<VDAcStateStructure> current_structure = data->get_current_structure();
   Ref<VDAcState> current_state = current_structure->get_owning_state();
   if(current_state.is_valid()) {
-    if(current_state->call("is_listening_to_updates")) {
-      current_state->call("update", context, current_structure, param, new_value, old_value);
-    }
+    current_state->call("update", context, current_structure, param, new_value, old_value);
   }
 }
 
@@ -86,7 +84,7 @@ void VDAhsmCompositeState::exit(Ref<VDAcContext> context, Ref<VDAcStateStructure
     Ref<VDAcStateStructure> empty;
     data->set_current_structure(empty);
   }
-  if(call("is_listening_to_updates")) context->disconnect("param_updated", this, "_handle_context_param_updated");
+  if(bis_listening_to_updates) context->disconnect("context_param_updated", this, "_handle_context_param_updated");
   call("_on_exit", context, structure);
 }
 
@@ -282,6 +280,7 @@ void VDAhsmCompositeState::_on_substate_removed(Ref<VDAcState> substate) {
   remove_state_map_entry(substate->get_state_ident(), substate);
 }
 
+// TODO: should only update itself or children?
 void VDAhsmCompositeState::_handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
   call("update", context, structure, param, new_value, old_value);
   _internal_transition(context, structure);

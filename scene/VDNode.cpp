@@ -85,7 +85,7 @@ void VDAcNode::start() {
     call_deferred("_pre_start");
     root->call_deferred("init", context, root_structure);
     root->call_deferred("enter", context, root_structure);
-    if(root->call("has_tick")) {
+    if(root->has_tick()) {
       set_process(tick_mode == ALL || tick_mode == PROCESS);
       set_physics_process(tick_mode == ALL || tick_mode == PHYSICS_PROCESS);
     }

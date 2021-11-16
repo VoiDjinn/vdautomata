@@ -14,7 +14,7 @@ void VDAhsmOrthogonalState::restore_history_shallow() {}
 VDAhsmCompositeState::VDAhsmCompositeState() {}
 
 void VDAhsmCompositeState::_bind_methods() {
-  ClassDB::bind_method(D_METHOD("add_transition", "transition"), &VDAhsmCompositeState::add_transition);
+  ClassDB::bind_method(D_METHOD("add_transition", "transition", "pos"), &VDAhsmCompositeState::add_transition, DEFVAL(-1));
   ClassDB::bind_method(D_METHOD("remove_transition", "transition"), &VDAhsmCompositeState::remove_transition);
   ClassDB::bind_method(D_METHOD("set_transitions", "new_transitions"), &VDAhsmCompositeState::set_transitions_open);
   ClassDB::bind_method(D_METHOD("get_transitions"), &VDAhsmCompositeState::get_transitions_open);
@@ -88,10 +88,11 @@ void VDAhsmCompositeState::exit(Ref<VDAcContext> context, Ref<VDAcStateStructure
   call("_on_exit", context, structure);
 }
 
-void VDAhsmCompositeState::add_transition(Ref<VDAhsmTransition> transition) {
+void VDAhsmCompositeState::add_transition(Ref<VDAhsmTransition> transition, int pos) {
   ERR_FAIL_COND_MSG(!transition.is_valid(), "Add: Transition is not valid.");
   ERR_FAIL_COND_MSG(transitions.find(transition) >= 0, "Add: Transition already contained.");
-  transitions.push_back(transition);
+  if(pos >= 0) transitions.insert(pos, transition);
+  else transitions.push_back(transition);
   update_transition_from_state(transition->get_from_state(), nullptr, transition);
 //#ifdef TOOLS_ENABLED
   Vector<Variant> binds;
@@ -121,29 +122,25 @@ void VDAhsmCompositeState::remove_transition(Ref<VDAhsmTransition> transition) {
 }
 
 void VDAhsmCompositeState::set_transitions(Vector<Ref<VDAhsmTransition>> new_transitions) {
+  int added = 0;
   int removed = 0;
-  List<Ref<VDAhsmTransition>> new_entries;
-  List<Ref<VDAhsmTransition>> contained_entries;
   for(int i = 0; i < new_transitions.size(); i++) {
     Ref<VDAhsmTransition> transition = new_transitions[i];
-    if(transitions.find(transition) >= 0) {
-      contained_entries.push_back(transition);
-    } else new_entries.push_back(transition);
+    if(transitions.find(transition) < 0) {
+      add_transition(transition, i);
+      added++;
+    }
   }
   int transition_index;
   for(transition_index = 0; transition_index < transitions.size(); transition_index++) {
     Ref<VDAhsmTransition> transition = transitions[transition_index];
-    if(!contained_entries.find(transition)) {
+    if(new_transitions.find(transition) < 0) {
       remove_transition(transition);
       transition_index--;
       removed++;
     }
   }
-  for(int i = 0; i < new_entries.size(); i++) {
-    Ref<VDAhsmTransition> entry = new_entries[i];
-    add_transition(entry);
-  }
-  if(removed > 0 || new_entries.size() > 0) {
+  if(removed > 0 || added > 0) {
     emit_signal("transitions_changed");
     property_list_changed_notify();
   }
@@ -389,31 +386,25 @@ Ref<VDAcState> VDAhsmTransition::get_to_state() const {
 }
 
 void VDAhsmTransition::set_conditions(Vector<Ref<VDAcCondition>> new_conditions) {
+  int added = 0;
   int removed = 0;
-  List<Ref<VDAcCondition>> new_entries;
-  List<Ref<VDAcCondition>> contained_entries;
   for(int i = 0; i < new_conditions.size(); i++) {
     Ref<VDAcCondition> condition = new_conditions[i];
-    if(conditions.find(condition) >= 0) {
-      contained_entries.push_back(condition);
-    } else {
-      new_entries.push_back(condition);
+    if(conditions.find(condition) < 0) {
+      conditions.insert(i, condition);
+      added++;
     }
   }
   int condition_index;
   for(condition_index = 0; condition_index < conditions.size(); condition_index++) {
     Ref<VDAcCondition> condition = conditions[condition_index];
-    if(!contained_entries.find(condition)) {
+    if(new_conditions.find(condition) < 0) {
       conditions.erase(condition);
       condition_index--;
       removed++;
     }
   }
-  for(int i = 0; i < new_entries.size(); i++) {
-    Ref<VDAcCondition> entry = new_entries[i];
-    conditions.push_back(entry);
-  }
-  if(removed > 0 || new_entries.size() > 0) {
+  if(removed > 0 || added > 0) {
     emit_signal("conditions_changed");
     property_list_changed_notify();
   }

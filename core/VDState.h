@@ -83,7 +83,7 @@ public:
     virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
     virtual void deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
 
-    virtual void add_substate(Ref<VDAcState> substate);
+    virtual void add_substate(Ref<VDAcState> substate, int pos = -1);
     virtual void remove_substate(Ref<VDAcState> substate);
     virtual void set_substates(Vector<Ref<VDAcState>> new_substates);
     virtual Vector<Ref<VDAcState>> get_substates() const;

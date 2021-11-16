@@ -153,31 +153,27 @@ bool VDAcGroupedCondition::_pass(Ref<VDAcContext> context) {
 }
 
 void VDAcGroupedCondition::set_subconditions(Vector<Ref<VDAcCondition>> new_subconditions) {
+  int added = 0;
   int removed = 0;
-  List<Ref<VDAcCondition>> new_entries;
-  List<Ref<VDAcCondition>> contained_entries;
   for(int i = 0; i < new_subconditions.size(); i++) {
     Ref<VDAcCondition> subcondition = new_subconditions[i];
-    if(subconditions.find(subcondition) >= 0) {
-      contained_entries.push_back(subcondition);
-    } else {
-      new_entries.push_back(subcondition);
+    if(subconditions.find(subcondition) < 0) {
+      subconditions.insert(i, subcondition);
+      emit_signal("subcondition_added", subcondition);
+      added++;
     }
   }
-  for(int i = 0; i < subconditions.size(); i++) {
-    Ref<VDAcCondition> subcondition = subconditions[i];
-    if(!contained_entries.find(subcondition)) {
+  int condition_index;
+  for(condition_index = 0; condition_index < subconditions.size(); condition_index++) {
+    Ref<VDAcCondition> subcondition = subconditions[condition_index];
+    if(new_subconditions.find(subcondition) < 0) {
       subconditions.erase(subcondition);
-      removed++;
       emit_signal("subcondition_removed", subcondition);
+      condition_index--;
+      removed++;
     }
   }
-  for(int i = 0; i < new_entries.size(); i++) {
-    Ref<VDAcCondition> entry = new_entries[i];
-    subconditions.push_back(entry);
-    emit_signal("subcondition_added", entry);
-  }
-  if(removed > 0 || new_entries.size() > 0) {
+  if(removed > 0 || added > 0) {
     emit_signal("subconditions_changed");
     property_list_changed_notify();
   }

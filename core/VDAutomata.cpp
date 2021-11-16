@@ -112,10 +112,7 @@ void VDAcAutomata::set_state(Ref<VDAcState> state, StringName path) {
         }
       }
       property_list_changed_notify();
-    } else {
-      // Same state, so do nothing
-      return;
-    }
+    } else return;
   } else {
     current_structure = Ref<VDAcStateStructure>(memnew(VDAcStateStructure()));
     current_structure->set_owning_automata(this);
@@ -155,7 +152,6 @@ Ref<VDAcStateStructure> VDAcAutomata::get_structure(StringName path) {
   }
 }
 
-// TODO: recheck cleaning for substates (didnt worked on last test)
 void VDAcAutomata::remove_state(StringName path) {
   ERR_FAIL_COND_MSG(path == "/", "Remove: Cannot remove root structure.");
   ERR_FAIL_COND_MSG(String(path).length() == 0, "Remove: Empty path.");

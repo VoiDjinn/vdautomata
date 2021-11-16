@@ -202,7 +202,7 @@ VDAcParentState::VDAcParentState() {}
 void VDAcParentState::_bind_methods() {
   ClassDB::bind_method(D_METHOD("_on_substate_added", "substate"), &VDAcParentState::_on_substate_added);
   ClassDB::bind_method(D_METHOD("_on_substate_removed", "substate"), &VDAcParentState::_on_substate_removed);
-  ClassDB::bind_method(D_METHOD("add_substate", "substate"), &VDAcParentState::add_substate);
+  ClassDB::bind_method(D_METHOD("add_substate", "substate", "pos"), &VDAcParentState::add_substate, DEFVAL(-1));
   ClassDB::bind_method(D_METHOD("remove_substate", "substate"), &VDAcParentState::remove_substate);
   ClassDB::bind_method(D_METHOD("set_substates", "new_substates"), &VDAcParentState::set_substates_open);
   ClassDB::bind_method(D_METHOD("get_substates"), &VDAcParentState::get_substates_open);
@@ -305,10 +305,11 @@ void VDAcParentState::deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> s
 void VDAcParentState::_on_substate_added(Ref<VDAcState> substate) {}
 void VDAcParentState::_on_substate_removed(Ref<VDAcState> substate) {}
 
-void VDAcParentState::add_substate(Ref<VDAcState> substate) {
+void VDAcParentState::add_substate(Ref<VDAcState> substate, int pos) {
   ERR_FAIL_COND_MSG(!substate.is_valid(), "Add: Substate is not valid.");
   if(substates.find(substate) < 0) {
-    substates.push_back(substate);
+    if(pos >= 0) substates.insert(pos, substate);
+    else substates.push_back(substate);
     call("_on_substate_added", substate);
     emit_signal("substate_added", substate);
     property_list_changed_notify();
@@ -330,31 +331,25 @@ bool VDAcParentState::has_substates() const {
 }
 
 void VDAcParentState::set_substates(Vector<Ref<VDAcState>> new_substates) {
+  int added = 0;
   int removed = 0;
-  List<Ref<VDAcState>> new_entries;
-  List<Ref<VDAcState>> contained_entries;
   for(int i = 0; i < new_substates.size(); i++) {
     Ref<VDAcState> state = new_substates[i];
-    if(substates.find(state) >= 0) {
-      contained_entries.push_back(state);
-    } else {
-      new_entries.push_back(state);
+    if(substates.find(state) < 0) {
+      add_substate(state, i);
+      added++;
     }
   }
   int state_index;
   for(state_index = 0; state_index < substates.size(); state_index++) {
     Ref<VDAcState> state = substates[state_index];
-    if(!contained_entries.find(state)) {
+    if(new_substates.find(state) < 0) {
       remove_substate(state);
       state_index--;
       removed++;
     }
   }
-  for(int i = 0; i < new_entries.size(); i++) {
-    Ref<VDAcState> entry = new_entries[i];
-    add_substate(entry);
-  }
-  if(removed > 0 || new_entries.size() > 0) {
+  if(removed > 0 || added > 0) {
     emit_signal("substates_changed");
     property_list_changed_notify();
   }

@@ -89,7 +89,7 @@ public:
     virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param = 0, Variant new_value = 0, Variant old_value = 0) override;
     virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
 
-    void add_transition(Ref<VDAhsmTransition> transition);
+    void add_transition(Ref<VDAhsmTransition> transition, int pos = -1);
     void remove_transition(Ref<VDAhsmTransition> transition);
     void set_transitions(Vector<Ref<VDAhsmTransition>> new_transitions);
     Vector<Ref<VDAhsmTransition>> get_transitions() const;

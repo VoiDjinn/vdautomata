@@ -40,9 +40,7 @@ bool VDAhsmCompositeState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure
     Ref<VDAcStateData> data = context->get_state_data(structure->get_automata_path());
     Ref<VDAcStateStructure> child_structure = data->get_current_structure();
     Ref<VDAcState> current_state = child_structure->get_owning_state();
-    if(current_state->call("has_tick")) {
-      return current_state->call("tick", context, child_structure);
-    }
+    if(current_state->call("has_tick")) return current_state->call("tick", context, child_structure);
   }
   return false;
 }
@@ -52,10 +50,7 @@ void VDAhsmCompositeState::enter(Ref<VDAcContext> context, Ref<VDAcStateStructur
   Vector<Variant> binds;
   binds.push_back(context);
   binds.push_back(structure);
-  if(call("is_listening_to_updates")) {
-    context->connect("param_updated", this, "_handle_context_param_updated", binds);
-    context->connect("params_updated", this, "_handle_context_params_updated", binds);
-  }
+  if(call("is_listening_to_updates")) context->connect("param_updated", this, "_handle_context_param_updated", binds);
   Ref<VDAcStateData> data = context->get_state_data(structure->get_automata_path());
   Ref<VDAcStateStructure> current_structure = data->get_current_structure();
   if(current_structure.is_null() && default_substate.is_valid()) {
@@ -91,10 +86,7 @@ void VDAhsmCompositeState::exit(Ref<VDAcContext> context, Ref<VDAcStateStructure
     Ref<VDAcStateStructure> empty;
     data->set_current_structure(empty);
   }
-  if(call("is_listening_to_updates")) {
-    context->disconnect("param_updated", this, "_handle_context_param_updated");
-    context->disconnect("params_updated", this, "_handle_context_params_updated");
-  }
+  if(call("is_listening_to_updates")) context->disconnect("param_updated", this, "_handle_context_param_updated");
   call("_on_exit", context, structure);
 }
 
@@ -138,9 +130,7 @@ void VDAhsmCompositeState::set_transitions(Vector<Ref<VDAhsmTransition>> new_tra
     Ref<VDAhsmTransition> transition = new_transitions[i];
     if(transitions.find(transition) >= 0) {
       contained_entries.push_back(transition);
-    } else {
-      new_entries.push_back(transition);
-    }
+    } else new_entries.push_back(transition);
   }
   int transition_index;
   for(transition_index = 0; transition_index < transitions.size(); transition_index++) {
@@ -232,10 +222,10 @@ void VDAhsmCompositeState::update_transition_from_state(Ref<VDAcState> new_state
       state_map[old_state->get_state_ident()] = state_transitions;
     }
   }
-  ERR_FAIL_COND_MSG(!new_state.is_valid(), "Update: No valid from state set.");
+  ERR_FAIL_COND_MSG(!new_state.is_valid(), "Update transition: No valid from state.");
   if(substates.find(new_state) < 0) {
     add_substate(new_state);
-    WARN_PRINT("Update: Non-contained from state added to substates.");
+    WARN_PRINT("Update transition: Non-contained from state.");
   }
   StringName state_name = new_state->get_state_ident();
   Vector<Ref<VDAhsmTransition>> state_transitions;
@@ -294,11 +284,6 @@ void VDAhsmCompositeState::_on_substate_removed(Ref<VDAcState> substate) {
 
 void VDAhsmCompositeState::_handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
   call("update", context, structure, param, new_value, old_value);
-  _internal_transition(context, structure);
-}
-
-void VDAhsmCompositeState::_handle_context_params_updated(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
-  call("update", context, structure);
   _internal_transition(context, structure);
 }
 

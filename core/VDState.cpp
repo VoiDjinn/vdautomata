@@ -12,7 +12,7 @@ void VDAcState::_bind_methods() {
   ClassDB::bind_method(D_METHOD("tick", "context", "structure"), &VDAcState::tick);
   ClassDB::bind_method(D_METHOD("init", "context", "structure"), &VDAcState::init);
   ClassDB::bind_method(D_METHOD("enter", "context", "structure"), &VDAcState::enter);
-  ClassDB::bind_method(D_METHOD("update", "context", "structure", "param", "new_value", "old_value"), &VDAcState::update, DEFVAL(0), DEFVAL(0), DEFVAL(0));
+  ClassDB::bind_method(D_METHOD("update", "context", "structure", "param", "new_value", "old_value"), &VDAcState::update);
   ClassDB::bind_method(D_METHOD("exit", "context", "structure"), &VDAcState::exit);
   ClassDB::bind_method(D_METHOD("deinit", "context", "structure"), &VDAcState::deinit);
   ClassDB::bind_method(D_METHOD("_on_tick", "context", "structure"), &VDAcState::_on_tick);
@@ -20,14 +20,13 @@ void VDAcState::_bind_methods() {
   ClassDB::bind_method(D_METHOD("_on_init", "context", "structure"), &VDAcState::_on_init);
   ClassDB::bind_method(D_METHOD("_pre_enter", "context", "structure"), &VDAcState::_pre_enter);
   ClassDB::bind_method(D_METHOD("_on_enter", "context", "structure"), &VDAcState::_on_enter);
-  ClassDB::bind_method(D_METHOD("_on_update", "context", "structure", "param", "new_value", "old_value"), &VDAcState::_on_update, DEFVAL(0), DEFVAL(0), DEFVAL(0));
+  ClassDB::bind_method(D_METHOD("_on_update", "context", "structure", "param", "new_value", "old_value"), &VDAcState::_on_update);
   ClassDB::bind_method(D_METHOD("_pre_exit", "context", "structure"), &VDAcState::_pre_exit);
   ClassDB::bind_method(D_METHOD("_on_exit", "context", "structure"), &VDAcState::_on_exit);
   ClassDB::bind_method(D_METHOD("_pre_deinit", "context", "structure"), &VDAcState::_pre_deinit);
   ClassDB::bind_method(D_METHOD("_on_deinit", "context", "structure"), &VDAcState::_on_deinit);
 
   ClassDB::bind_method(D_METHOD("_handle_context_param_updated", "param", "new_value", "old_value", "context", "structure"), &VDAcState::_handle_context_param_updated);
-  ClassDB::bind_method(D_METHOD("_handle_context_params_updated", "context", "structure"), &VDAcState::_handle_context_params_updated);
   ClassDB::bind_method(D_METHOD("get_tree"), &VDAcState::get_tree);
 
   ClassDB::bind_method(D_METHOD("set_state_ident", "ident"), &VDAcState::set_state_ident);
@@ -57,7 +56,6 @@ void VDAcState::_bind_methods() {
 
   // Param context workflow (virtual methods)
   BIND_VMETHOD(MethodInfo("_handle_context_param_updated", PropertyInfo(Variant::NIL, "param"), PropertyInfo(Variant::NIL, "new_value"), PropertyInfo(Variant::NIL, "old_value"), PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
-  BIND_VMETHOD(MethodInfo("_handle_context_params_updated", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
   BIND_VMETHOD(MethodInfo("has_tick"));
   BIND_VMETHOD(MethodInfo("is_listening_to_updates"));
 
@@ -97,7 +95,6 @@ void VDAcState::enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structur
     binds.push_back(context);
     binds.push_back(structure);
     context->connect("param_updated", this, "_handle_context_param_updated", binds);
-    context->connect("params_updated", this, "_handle_context_params_updated", binds);
   }
   call("_on_enter", context, structure);
 }
@@ -108,10 +105,7 @@ void VDAcState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structu
 void VDAcState::exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
   call("_pre_exit", context, structure);
   context->remove_active_structure(structure);
-  if(call("is_listening_to_updates")) {
-    context->disconnect("param_updated", this, "_handle_context_param_updated");
-    context->disconnect("params_updated", this, "_handle_context_params_updated");
-  }
+  if(call("is_listening_to_updates")) context->disconnect("param_updated", this, "_handle_context_param_updated");
   call("_on_exit", context, structure);
 }
 
@@ -136,10 +130,6 @@ void VDAcState::_on_deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> str
 
 void VDAcState::_handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
   call("update", context, structure, param, new_value, old_value);
-}
-
-void VDAcState::_handle_context_params_updated(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
-  call("update", context, structure);
 }
 
 SceneTree * VDAcState::get_tree() const {
@@ -238,9 +228,7 @@ bool VDAcParentState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> str
     for(int i = 0; i < keys.size(); i++) {
       Ref<VDAcStateStructure> substate_structure = substate_structures[keys[i]];
       Ref<VDAcState> substate = substate_structure->get_owning_state();
-      if(substate->call("has_tick")) {
-        substate->call("tick", context, substate_structure);
-      }
+      if(substate->call("has_tick")) substate->call("tick", context, substate_structure);
     }
     return true;
   } else return false;
@@ -285,9 +273,7 @@ void VDAcParentState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> s
   for(int i = 0; i < keys.size(); i++) {
     Ref<VDAcStateStructure> substructure = sub_structures[keys[i]];
     Ref<VDAcState> substate = substructure->get_owning_state();
-    if(substate->call("is_listening_to_updates")) {
-      substate->call("update", context, substructure, param, new_value, old_value);
-    }
+    if(substate->call("is_listening_to_updates")) substate->call("update", context, substructure, param, new_value, old_value);
   }
 }
 

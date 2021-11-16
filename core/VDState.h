@@ -30,14 +30,12 @@ protected:
     virtual void _on_init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _pre_enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _on_enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
-    virtual void _on_update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param = 0, Variant new_value = 0, Variant old_value = 0);
+    virtual void _on_update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param, Variant new_value, Variant old_value);
     virtual void _pre_exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _on_exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _pre_deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _on_deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
-
     virtual void _handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
-    virtual void _handle_context_params_updated(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
 
     SceneTree* get_tree() const;
 public:
@@ -46,7 +44,7 @@ public:
     virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
-    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param = 0, Variant new_value = 0, Variant old_value = 0);
+    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param, Variant new_value, Variant old_value);
     virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
 
@@ -81,7 +79,7 @@ public:
     virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
     virtual void init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
     virtual void enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
-    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param = 0, Variant new_value = 0, Variant old_value = 0) override;
+    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param, Variant new_value, Variant old_value) override;
     virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
     virtual void deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
 

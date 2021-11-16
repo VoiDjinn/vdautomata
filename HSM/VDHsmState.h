@@ -102,9 +102,8 @@ public:
 protected:
     virtual void _on_substate_added(Ref<VDAcState> substate) override;
     virtual void _on_substate_removed(Ref<VDAcState> substate) override;
-
     virtual void _handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
-    virtual void _handle_context_params_updated(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+
     void _internal_transition(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
 private:
     virtual void add_state_map_entry(StringName entry_name, Ref<VDAcState> substate);

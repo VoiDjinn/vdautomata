@@ -3,16 +3,14 @@
 
 #include "../core/VDState.h"
 
-class VDAbtState : public VDAcState {
-    GDCLASS(VDAbtState, VDAcState);
+class VDAbtState : public VDAcParentState {
+    GDCLASS(VDAbtState, VDAcParentState);
 
 protected:
     static void _bind_methods();
 
     String param_key_btstate = "VDBT/BTStateName/State";
     bool is_active = true;
-
-    virtual bool _on_tick(Ref<VDAcContext> context) override;
 
     virtual bool _succeed(Ref<VDAcContext> context);
     virtual bool _fail(Ref<VDAcContext> context);
@@ -25,7 +23,7 @@ protected:
 public:
     VDAbtState();
 
-    virtual bool tick(Ref<VDAcContext> context) override;
+    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
 };
 
 #endif

@@ -1,9 +1,18 @@
 # (WIP) VDAutomata
 
-ATTENTION: Currently this module is heavily under development and current implementations may change at a later point. So do not expect it to work.
+<p align="center">
+    <img src="_vda_logo_large.svg" width="400" alt="VDAutomata logo">
+</p>
 
-## About
-VDAutomata is a Godot module (currenty developed on version 3.3.2) that aims to provide native components for creating state and behaviour management systems.
+A Godot Engine module for native automation.
+
+**ATTENTION:** this module is heavily under development and current implementations may change at a later point. Open an [issues](https://github.com/VoiDjinn/vdautomata/issues) to report any problem. If you need any help, open a new [discussion](hhttps://github.com/VoiDjinn/vdautomata/discussions).
+
+### Tested Godot version
+The module is built with version 3.4+ in mind.
+
+## What is this module for?
+VDAutomata aims to provide native components for creating state and behaviour management systems.
 
 ## Status (WIP)
 ### Steering AI (SAI)
@@ -17,4 +26,6 @@ VDAutomata is a Godot module (currenty developed on version 3.3.2) that aims to 
 - [ ] ...
 
 ## Documentation
-In progress...
+The [Wiki](https://github.com/VoiDjinn/vdautomata/wiki/) is available:
+- [Glossary](https://github.com/VoiDjinn/vdautomata/wiki/Glossary)
+- [Setup](https://github.com/VoiDjinn/vdautomata/wiki/Setup).

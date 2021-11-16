@@ -3,8 +3,8 @@
 
 #include "../core/VDState.h"
 
-class VDAgpState : public VDAcState {
-    GDCLASS(VDAgpState, VDAcState);
+class VDAgpState : public VDAcParentState {
+    GDCLASS(VDAgpState, VDAcParentState);
 
     Array state_atoms;
     Array actions;

@@ -5,7 +5,7 @@ VDAbtState::VDAbtState(){}
 
 void VDAbtState::_bind_methods() {}
 
-bool VDAbtState::tick(Ref<VDAcContext> context){
+bool VDAbtState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure){
     if(!this->is_active){
         return _fail(context);
     }
@@ -15,7 +15,8 @@ bool VDAbtState::tick(Ref<VDAcContext> context){
     this->_run(context);
     Array tick_args;
     tick_args.push_back(context);
-    bool result = call("_on_tick", tick_args);
+    tick_args.push_back(structure);
+    bool result = this->_succeed(context);
 // 	if result is GDScriptFunctionState:
 // 		if not running():
 // 			push_error(name + " exited execution, but it's not running().")
@@ -25,10 +26,6 @@ bool VDAbtState::tick(Ref<VDAcContext> context){
 // 		push_error(name + " completed but it is still running(). Must either succeed() or fail().")
 // 		assert(false)
 	return result;
-}
-
-bool VDAbtState::_on_tick(Ref<VDAcContext> context){
-    return _succeed(context);
 }
 
 bool VDAbtState::_succeed(Ref<VDAcContext> context){

@@ -19,7 +19,7 @@ void VDAsaiBehaviorState::_calculate_steering ( Ref<VDAsaiTargetAcceleration> ac
     acceleration->set_zero();
 }
 
-void VDAsaiBehaviorState::exit ( Ref<VDAcContext> context )
+void VDAsaiBehaviorState::exit ( Ref<VDAcContext> context, Ref<VDAcStateStructure> structure )
 {
     if ( context->get_context_params().has ( this->key_acceleration ) ) {
         Ref<VDAsaiTargetAcceleration> acceleration = context->get_context_value ( this->key_acceleration );

@@ -2,13 +2,13 @@
 #define VDSTATE_H
 
 #include "core/resource.h"
+#include "scene/main/scene_tree.h"
 #include "./VDAutomata.h"
 #include "../../vdcore/VDCore.h"
 
 class VDAcContext;
 class VDAcStateData;
 class VDAcBlackboard;
-class VDAcEvent;
 class VDAcAutomata;
 class VDAcStateStructure;
 //////////
@@ -16,59 +16,81 @@ class VDAcStateStructure;
 //////////
 class VDAcState : public Resource {
     GDCLASS(VDAcState, Resource);
-
 public:
-    virtual bool tick(Ref<VDAcContext> context);
-    virtual bool has_tick() {
-        return true;
-    };
     bool debug_mode = false;
-
 protected:
     static void _bind_methods();
 
+    StringName state_ident;
     String state_name;
-    Vector<Ref<VDAcState>> substates;
+    bool bhas_tick = true;
 
-    virtual bool _on_tick(Ref<VDAcContext> context);
-    virtual void _on_init(Ref<VDAcContext> context);
-    virtual void _after_init(Ref<VDAcContext> context);
-    virtual void _on_enter(Ref<VDAcContext> context);
-    virtual void _after_enter(Ref<VDAcContext> context);
-    virtual void _on_update(Ref<VDAcContext> context);
-    virtual void _after_update(Ref<VDAcContext> context);
-    virtual void _before_exit(Ref<VDAcContext> context);
-    virtual void _on_exit(Ref<VDAcContext> context);
-    virtual void _before_deinit(Ref<VDAcContext> context);
-    virtual void _on_deinit(Ref<VDAcContext> context);
+    virtual bool _on_tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void _pre_init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void _on_init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void _pre_enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void _on_enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void _on_update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param = 0, Variant new_value = 0, Variant old_value = 0);
+    virtual void _pre_exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void _on_exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void _pre_deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void _on_deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
 
-    virtual void _on_substate_added(Ref<VDAcState> state);
-    virtual void _on_substate_removed(Ref<VDAcState> state);
+    virtual void _handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void _handle_context_params_updated(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+
+    SceneTree* get_tree() const;
 public:
     VDAcState();
 
-    virtual bool dispatch(Ref<VDAcEvent> event, Ref<VDAcContext> context);
-    virtual bool process(Ref<VDAcEvent> event, Ref<VDAcContext> context);
+    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param = 0, Variant new_value = 0, Variant old_value = 0);
+    virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
 
-    virtual void init(Ref<VDAcContext> context);
-    virtual void enter(Ref<VDAcContext> context);
-    virtual void update(Ref<VDAcContext> context);
-    virtual void exit(Ref<VDAcContext> context);
-    virtual void deinit(Ref<VDAcContext> context);
+    void set_has_tick(bool has_tick);
+    virtual bool has_tick() const;
 
-    void add_substate(Ref<VDAcState> substate);
-    void remove_substate(Ref<VDAcState> substate);
-    virtual bool has_substates() const;
-    virtual void set_substates(Vector<Ref<VDAcState>> substates);
-    virtual Vector<Ref<VDAcState>> get_substates() const;
-    virtual void set_substates_open(Array substates);
-    virtual Array get_substates_open() const;
-
+    void set_state_ident(StringName ident);
+    StringName get_state_ident() const;
     void set_state_name(String name);
     String get_state_name() const;
     virtual String to_state_string() const;
     void set_debug_mode(bool mode);
     bool is_debug_mode() const;
+};
+//////////
+// VDAcParentState
+//////////
+class VDAcParentState : public VDAcState {
+    GDCLASS(VDAcParentState, VDAcState);
+protected:
+    static void _bind_methods();
+
+    Vector<Ref<VDAcState>> substates;
+
+    virtual void _on_substate_added(Ref<VDAcState> substate);
+    virtual void _on_substate_removed(Ref<VDAcState> substate);
+public:
+    VDAcParentState();
+
+    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    virtual void init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    virtual void enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param = 0, Variant new_value = 0, Variant old_value = 0) override;
+    virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    virtual void deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+
+    virtual void add_substate(Ref<VDAcState> substate);
+    virtual void remove_substate(Ref<VDAcState> substate);
+    virtual void set_substates(Vector<Ref<VDAcState>> new_substates);
+    virtual Vector<Ref<VDAcState>> get_substates() const;
+    virtual void set_substates_open(Array new_substates);
+    virtual Array get_substates_open() const;
+    bool is_substate_unique(Ref<VDAcState> substate);
+    bool has_substates() const;
 };
 //////////
 // VDAcStateData
@@ -79,72 +101,54 @@ protected:
     static void _bind_methods();
 
     Ref<VDAcContext> context;
-    Ref<VDAcState> owning_state;
-    Ref<VDAcState> current_state;
+    Ref<VDAcStateStructure> owning_structure;
+    Ref<VDAcStateStructure> current_structure;
 public:
     VDAcStateData();
 
-    void set_data_context ( Ref<VDAcContext> context );
+    void set_data_context ( Ref<VDAcContext> new_context );
     Ref<VDAcContext> get_data_context() const;
-    void set_owning_state ( Ref<VDAcState> state );
-    Ref<VDAcState> get_owning_state() const;
-    void set_current_state ( Ref<VDAcState> state );
-    Ref<VDAcState> get_current_state() const;
-};
-//////////
-// VDAcEvent
-//////////
-class VDAcEvent : public Resource {
-    GDCLASS(VDAcEvent, Resource);
-protected:
-    static void _bind_methods();
-
-    String event_name;
-public:
-    VDAcEvent();
-
-    virtual bool process_from(Ref<VDAcContext> context, Ref<VDAcState> state = nullptr);
-
-    void set_event_name(String name);
-    String get_event_name() const;
+    void set_owning_structure ( Ref<VDAcStateStructure> structure );
+    Ref<VDAcStateStructure> get_owning_structure() const;
+    void set_current_structure ( Ref<VDAcStateStructure> structure );
+    Ref<VDAcStateStructure> get_current_structure() const;
 };
 //////////
 // VDAcContext
 //////////
-class VDAcContext : public Reference
+class VDAcContext : public Resource
 {
-    GDCLASS ( VDAcContext, Reference );
+    GDCLASS ( VDAcContext, Resource );
 
     friend class VDState;
 protected:
     static void _bind_methods();
 
-    Variant owner;
     HashMap<Variant, Variant, VariantHasher> params;
     List<Variant> param_keys;
     Ref<VDAcAutomata> owning_automata;
     Ref<VDAcBlackboard> blackboard;
     float delta = 1.0;
 
-    Vector<Ref<VDAcState>> active_states;
-    Vector<Ref<VDAcState>> queued_states;
+    Vector<Ref<VDAcStateStructure>> active_structures;
+    Vector<Ref<VDAcStateStructure>> queued_structures;
     //TODO: All state machine formalisms, including UML state machines, universally assume that a state machine completes processing of each event before it can start processing the next event.
-    Vector<Ref<VDAcEvent>> queued_events;
-    HashMap<int, Ref<VDAcStateData>> state_datas;
+    HashMap<StringName, Ref<VDAcStateData>> state_datas;
+
+    virtual void _setup();
+    virtual void _undo();
+    SceneTree* get_tree() const;
 public:
     VDAcContext();
     ~VDAcContext();
 
-    void set_owner(Variant owner);
-    Variant get_owner() const;
-
-    void set_context_params(HashMap<Variant, Variant, VariantHasher> params);
+    void set_context_params(HashMap<Variant, Variant, VariantHasher> new_params);
     HashMap<Variant, Variant, VariantHasher> get_context_params() const;
-    void set_context_params_open(Dictionary params);
+    void set_context_params_open(Dictionary new_params);
     Dictionary get_context_params_open() const;
-    void set_context_value(Variant key, Variant value);
-    Variant get_context_value(Variant key) const;
-    bool has_context_param(Variant key);
+    void set_context_value(const Variant &key, const Variant &value, bool notify = true);
+    Variant get_context_value(const Variant &key) const;
+    bool has_context_param(const Variant &key);
 
     void set_owning_automata(Ref<VDAcAutomata> automata);
     Ref<VDAcAutomata> get_owning_automata() const;
@@ -153,19 +157,16 @@ public:
     void set_delta(float delta);
     float get_delta() const;
 
-    void add_active_state(Ref<VDAcState> state);
-    void remove_active_state(Ref<VDAcState> state);
-    void set_active_states(Vector<Ref<VDAcState>> states);
-    Vector<Ref<VDAcState>> get_active_states() const;
-    Array get_active_states_open() const;
+    void add_active_structure(Ref<VDAcStateStructure> structure);
+    void remove_active_structure(Ref<VDAcStateStructure> structure);
+    void set_active_structures(Vector<Ref<VDAcStateStructure>> structures);
+    Vector<Ref<VDAcStateStructure>> get_active_structures() const;
+    Array get_active_structures_open() const;
 
-    void add_queued_event(Ref<VDAcEvent> event);
-    void remove_queued_event(Ref<VDAcEvent> event);
-    Vector<Ref<VDAcEvent>> get_queued_events() const;
-
-    void set_state_data(Ref<VDAcState> state, Ref<VDAcStateData> data);
-    Ref<VDAcStateData> get_state_data(Ref<VDAcState> state) const;
-    HashMap<int, Ref<VDAcStateData>> get_state_datas() const;
+    void set_state_data(StringName state_path, Ref<VDAcStateData> data);
+    Ref<VDAcStateData> get_state_data(StringName state_path) const;
+    void remove_state_data(StringName state_path);
+    HashMap<StringName, Ref<VDAcStateData>> get_state_datas() const;
     Dictionary get_state_datas_open() const;
 };
 //////////
@@ -176,10 +177,8 @@ class VDAcBlackboard : public Resource {
 
     HashMap<Variant, Variant> params;
     Node* world;
-
 protected:
     static void _bind_methods();
-
 public:
     VDAcBlackboard();
 };

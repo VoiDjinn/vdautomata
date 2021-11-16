@@ -135,7 +135,7 @@ VDAcHSMEditorPlugin::VDAcHSMEditorPlugin()
 
 bool VDAcHSMEditorPlugin::can_edit(const Ref<VDAcState>& p_state)
 {
-    Ref<VDAhsmState> hsm = p_state;
+    Ref<VDAhsmCompositeState> hsm = p_state;
     return hsm.is_valid();
 }
 

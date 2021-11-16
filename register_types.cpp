@@ -4,6 +4,7 @@
 
 #include "./core/VDAutomata.h"
 #include "./core/VDState.h"
+#include "./core/VDCondition.h"
 #include "./scene/VDNode.h"
 #include "./editor/VDAutomataEditor.h"
 
@@ -20,16 +21,23 @@
 #include "./SAI/behaviors/VDSAIDefaultGroupBehaviors.h"
 
 void register_vdautomata_types() {
-	ClassDB::register_class<VDAcAutomata>();
+    ClassDB::register_class<VDAcAutomata>();
     ClassDB::register_class<VDAcState>();
+    ClassDB::register_class<VDAcParentState>();
     ClassDB::register_class<VDAcContext>();
     ClassDB::register_class<VDAcBlackboard>();
     ClassDB::register_class<VDAcNode>();
     ClassDB::register_class<VDAcStateData>();
-    ClassDB::register_class<VDAcEvent>();
+    ClassDB::register_class<VDAcStateStructure>();
 
-    ClassDB::register_class<VDAhsmState>();
-	ClassDB::register_class<VDAhsmTransition>();
+    ClassDB::register_class<VDAcCondition>();
+    ClassDB::register_class<VDAcContextCondition>();
+    ClassDB::register_class<VDAcFunctionCondition>();
+    ClassDB::register_class<VDAcGroupedCondition>();
+
+    ClassDB::register_class<VDAhsmCompositeState>();
+    ClassDB::register_class<VDAhsmOrthogonalState>();
+    ClassDB::register_class<VDAhsmTransition>();
     ClassDB::register_class<VDAhsmNode>();
 
     //ClassDB::register_class<VDAbtState>();
@@ -53,7 +61,7 @@ void register_vdautomata_types() {
     ClassDB::register_class<VDAsaiDGBSeparation>();
 
 #ifdef TOOLS_ENABLED
-    EditorPlugins::add_by_type<VDAcAutomataEditorPlugin>();
+    //EditorPlugins::add_by_type<VDAcAutomataEditorPlugin>();
 #endif
 }
 

@@ -24,7 +24,7 @@ protected:
 public:
     VDAsaiBehaviorState();
 
-    virtual void exit(Ref<VDAcContext> context) override;
+    virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
 
     void set_key_acceleration(String key);
     String get_key_acceleration() const;
@@ -39,7 +39,7 @@ protected:
 
     Ref<VDAsaiProximity> proximity;
 
-    virtual bool _report_neighbor(Ref<VDAsaiSteeringAgent> neighbor, Ref<VDAcContext> context){
+    virtual bool _report_neighbor(Ref<VDAsaiSteeringAgent> neighbor, Ref<VDAcContext> context) {
         return false;
     }
 public:
@@ -122,7 +122,7 @@ protected:
     List<Ref<VDAsaiSteeringAgent>> agents;
 
     //virtual int _find_neighbors(FuncRef _callback){
-    virtual int _find_neighbors(){
+    virtual int _find_neighbors() {
         return 0;
     }
 public:

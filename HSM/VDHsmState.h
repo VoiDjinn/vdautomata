@@ -5,6 +5,7 @@
 #include "core/reference.h"
 #include "core/func_ref.h"
 
+#include "../core/VDAutomata.h"
 #include "../core/VDState.h"
 #include "../core/VDCondition.h"
 
@@ -18,7 +19,7 @@ class VDAhsmNode;
  * = ???
  *
  * Condition resources
- * : encapsulated calues, that provide complex compare algorithm
+ * : encapsulated values, that provide complex compare algorithm
  * = abstract condition class, with virtual compare method
  *
  * Automatic / Eventless transitions
@@ -35,71 +36,80 @@ class VDAhsmNode;
  * -> Exit Pseudostate = to quit the current machine
  *
  * Thread pool
- * : Usage of threads in efficient, manageable spread manner
+ * : Usage of threads in efficient, manageable manner
  * = ???
  * -> VDAcAsyncNode, extends VDAcNode
 */
-
 //////////
-// VDAhsmState
 //////////
-class VDAhsmState : public VDAcState {
-    GDCLASS(VDAhsmState, VDAcState);
+// VDAhsmOrthogonalState
+//////////
+class VDAhsmOrthogonalState : public VDAcParentState {
+    GDCLASS(VDAhsmOrthogonalState, VDAcParentState);
 protected:
     static void _bind_methods();
 
-    bool bhas_regions = false;
+    //TODO: pseudostates aka. dynamic choice points
+#ifdef TOOLS_ENABLED
+    //define Ref<VDAhsmNode> default_subnode;
+    //define HashMap<String, Ref<VDAhsmNode>> subnodes;
+    //define List<String> subnode_keys;
+#endif
+public:
+    VDAhsmOrthogonalState();
+
+    virtual void restore_history_deep();
+    virtual void restore_history_shallow();
+};
+//////////
+//////////
+// VDAhsmCompositeState
+//////////
+class VDAhsmCompositeState : public VDAcParentState {
+    GDCLASS(VDAhsmCompositeState, VDAcParentState);
+protected:
+    static void _bind_methods();
 
     Ref<VDAcState> default_substate;
     Vector<Ref<VDAhsmTransition>> transitions;
-    HashMap<Ref<VDAcState>, Vector<Ref<VDAhsmTransition>>, VDAcReferenceInstanceHasher<VDAcState>> state_map;
+    HashMap<StringName, Vector<Ref<VDAhsmTransition>>> state_map;
     //TODO: pseudostates aka. dynamic choice points
-
 #ifdef TOOLS_ENABLED
     //define Ref<VDAhsmNode> default_subnode;
     //define HashMap<String, Ref<VDAhsmNode>> subnodes;
     //define List<String> subnode_keys;
 #endif
 
-    bool transit(Ref<VDAcState> target, Ref<VDAcContext> context);
-    Ref<VDAhsmTransition> get_viable_transition(Ref<VDAcContext> context, Ref<VDAcEvent> event = nullptr);
+    Ref<VDAhsmTransition> get_viable_transition(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
 public:
-    VDAhsmState();
+    VDAhsmCompositeState();
 
-    virtual bool tick(Ref<VDAcContext> context) override;
-    virtual bool has_tick() override;
-    virtual bool dispatch(Ref<VDAcEvent> event, Ref<VDAcContext> context) override;
+    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    virtual void enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param = 0, Variant new_value = 0, Variant old_value = 0) override;
+    virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
 
-    virtual void init(Ref<VDAcContext> context) override;
-    virtual void enter(Ref<VDAcContext> context) override;
-    virtual void update(Ref<VDAcContext> context) override;
-    virtual void exit(Ref<VDAcContext> context) override;
-    virtual void deinit(Ref<VDAcContext> context) override;
-	virtual bool has_substates() const override;
-
-    virtual void restore_history_deep();
-    virtual void restore_history_shallow();
-
-    Ref<VDAhsmTransition> create_transition(Ref<VDAcState> from, Ref<VDAcState> to, String name = "", Ref<VDAcEvent> trigger = nullptr, HashMap<Variant, Variant, VariantHasher> conditions = {});
-    Ref<VDAhsmTransition> create_transition_open(Ref<VDAcState> from, Ref<VDAcState> to, String name = "", Ref<VDAcEvent> trigger = nullptr, Dictionary conditions = {});
     void add_transition(Ref<VDAhsmTransition> transition);
     void remove_transition(Ref<VDAhsmTransition> transition);
-    void set_transitions(Vector<Ref<VDAhsmTransition>> transitions);
+    void set_transitions(Vector<Ref<VDAhsmTransition>> new_transitions);
     Vector<Ref<VDAhsmTransition>> get_transitions() const;
-    void set_transitions_open(Array transitions);
+    void set_transitions_open(Array new_transitions);
     Array get_transitions_open() const;
 
     void set_default_substate(Ref<VDAcState> substate);
     Ref<VDAcState> get_default_substate() const;
-    void set_has_regions(bool has);
-    bool has_regions();
+    bool is_valid_state_map_entry(Ref<VDAcState> substate);
 protected:
-    virtual void _on_substate_added(Ref<VDAcState> state) override;
-    virtual void _on_substate_removed(Ref<VDAcState> state) override;
+    virtual void _on_substate_added(Ref<VDAcState> substate) override;
+    virtual void _on_substate_removed(Ref<VDAcState> substate) override;
 
-    void _internal_transition(Ref<VDAcContext> context);
-    void _handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context);
-    void _handle_context_params_updated(Ref<VDAcContext> context);
+    virtual void _handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    virtual void _handle_context_params_updated(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    void _internal_transition(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+private:
+    virtual void add_state_map_entry(StringName entry_name, Ref<VDAcState> substate);
+    virtual void remove_state_map_entry(StringName entry_name, Ref<VDAcState> substate);
+    void update_transition_from_state(Ref<VDAcState> new_state, Ref<VDAcState> old_state, Ref<VDAhsmTransition> transition);
 };
 //////////
 // VDAhsmTransition
@@ -107,28 +117,20 @@ protected:
 class VDAhsmTransition : public Resource {
     GDCLASS(VDAhsmTransition, Resource);
 
+    friend class VDAhsmCompositeState;
+
     String transition_name;
     Ref<VDAcState> from;
     Ref<VDAcState> to;
     Ref<FuncRef> transition_delegate;
-    Ref<VDAcEvent> triggering_event;
-
-    Vector<Variant> condition_keys;
-    HashMap<Variant, Variant, VariantHasher> conditions;
-
-    //TODO: bis_auto_transit WIP
-    bool bis_automatic_transition = false;
-    bool bis_inner_transition = false;
-    bool bis_dynamic_transition = false;
-    bool bhas_conditions = false;
-    bool bwill_always_occur = false;
+    Vector<Ref<VDAcCondition>> conditions;
 protected:
     static void _bind_methods();
+
+    bool transit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual bool _can_transit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) const;
 public:
     VDAhsmTransition();
-
-    bool transit(Ref<VDAcContext> context);
-    bool can_transit(Ref<VDAcContext> context) const;
 
     void set_from_state(Ref<VDAcState> state);
     Ref<VDAcState> get_from_state() const;
@@ -136,17 +138,11 @@ public:
     Ref<VDAcState> get_to_state() const;
     void set_transition_delegate(Ref<FuncRef> delegate);
     Ref<FuncRef> get_transition_delegate() const;
-    void set_triggering_event(Ref<VDAcEvent> event);
-    Ref<VDAcEvent> get_triggering_event() const;
 
-    Vector<Variant> get_condition_keys() const;
-    void set_conditions(HashMap<Variant, Variant, VariantHasher> conditions);
-    HashMap<Variant, Variant, VariantHasher> get_conditions() const;
-    void set_conditions_open(Dictionary conditions);
-    Dictionary get_conditions_open();
-
-    void set_is_automatic_transition(bool automatic);
-    bool is_automatic_transition() const;
+    void set_conditions(Vector<Ref<VDAcCondition>> new_conditions);
+    void set_conditions_open(Array conditions);
+    Vector<Ref<VDAcCondition>> get_conditions() const;
+    Array get_conditions_open();
 
     void set_transition_name(String name);
     String get_transition_name() const;
@@ -182,7 +178,3 @@ public:
 };
 
 #endif
-
-//Sources
-
-//NR.1: https://medium.com/dotcrossdot/hierarchical-finite-state-machine-c9e3f4ce0d9e

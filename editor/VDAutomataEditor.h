@@ -75,7 +75,7 @@ class VDAcHSMEditorPlugin : public VDAcAutomataNodeEditorPlugin {
 
     static VDAcHSMEditorPlugin *singleton;
 
-    Ref<VDAhsmState> hsm_state;
+    Ref<VDAhsmCompositeState> hsm_state;
     GraphEdit *graph;
     Vector2 popup_menu_position;
     bool use_popup_menu_position;

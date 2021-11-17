@@ -5,6 +5,7 @@
 #include "./core/VDAutomata.h"
 #include "./core/VDState.h"
 #include "./core/VDCondition.h"
+#include "./core/VDContextCondition.h"
 #include "./scene/VDNode.h"
 #include "./editor/VDAutomataEditor.h"
 
@@ -31,14 +32,16 @@ void register_vdautomata_types() {
     ClassDB::register_class<VDAcStateStructure>();
 
     ClassDB::register_class<VDAcCondition>();
-    ClassDB::register_class<VDAcContextCondition>();
     ClassDB::register_class<VDAcFunctionCondition>();
     ClassDB::register_class<VDAcGroupedCondition>();
+    //TODO: make it work
+    //ClassDB::register_class<VDAcContextValueCondition>();
+    ClassDB::register_class<VDAcContextParamsCondition>();
 
     ClassDB::register_class<VDAhsmCompositeState>();
     ClassDB::register_class<VDAhsmOrthogonalState>();
     ClassDB::register_class<VDAhsmTransition>();
-    ClassDB::register_class<VDAhsmNode>();
+    //ClassDB::register_class<VDAhsmNode>();
 
     //ClassDB::register_class<VDAbtState>();
     //ClassDB::register_class<VDAbtComposite>();

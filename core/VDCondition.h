@@ -5,8 +5,6 @@
 #include "core/func_ref.h"
 #include "VDState.h"
 
-class VDAcContext;
-
 //////////
 /// VDAcCondition
 //////////
@@ -14,33 +12,20 @@ class VDAcCondition : public Resource {
     GDCLASS(VDAcCondition, Resource);
 
     String condition_name;
+	bool bis_not = false;
 protected:
     static void _bind_methods();
 
-    virtual bool _pass(Ref<VDAcContext> context);
+    virtual bool _on_check(Ref<VDAcContext> context);
 public:
     VDAcCondition();
-};
-//////////
-/// VDAcContextCondition
-//////////
-class VDAcContextCondition : public VDAcCondition {
-    GDCLASS(VDAcContextCondition, VDAcCondition);
 
-    Vector<Variant> parameter_keys;
-    HashMap<Variant, Variant, VariantHasher> parameters;
-protected:
-    static void _bind_methods();
+	bool can_pass(Ref<VDAcContext> context);
 
-    virtual bool _pass(Ref<VDAcContext> context) override;
-public:
-    VDAcContextCondition();
-
-    Vector<Variant> get_parameter_keys() const;
-    void set_parameters(HashMap<Variant, Variant, VariantHasher> new_parameters);
-    HashMap<Variant, Variant, VariantHasher> get_parameters() const;
-    void set_parameters_open(Dictionary new_parameters);
-    Dictionary get_parameters_open();
+	void set_condition_name(String name);
+	String get_condition_name() const;
+	void set_is_not(bool is_not);
+	bool is_not() const;
 };
 //////////
 /// VDAcFunctionCondition
@@ -52,7 +37,7 @@ class VDAcFunctionCondition : public VDAcCondition {
 protected:
     static void _bind_methods();
 
-    virtual bool _pass(Ref<VDAcContext> context) override;
+    virtual bool _on_check(Ref<VDAcContext> context) override;
 public:
     VDAcFunctionCondition();
 };
@@ -74,7 +59,7 @@ protected:
     VDSubconditionComparator comparator = VDSubconditionComparator::ALL;
     Vector<Ref<VDAcCondition>> subconditions;
 
-    virtual bool _pass(Ref<VDAcContext> context) override;
+    virtual bool _on_check(Ref<VDAcContext> context) override;
 public:
     void set_subconditions(Vector<Ref<VDAcCondition>> new_subconditions);
     void set_subconditions_open(Array new_subconditions);

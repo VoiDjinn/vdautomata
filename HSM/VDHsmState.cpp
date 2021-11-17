@@ -342,7 +342,7 @@ bool VDAhsmTransition::transit(Ref<VDAcContext> context, Ref<VDAcStateStructure>
 bool VDAhsmTransition::_can_transit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) const {
   for(int i = 0; i < conditions.size(); i++) {
     Ref<VDAcCondition> condition = conditions[i];
-    if(!condition->call("_pass", context)) {
+    if(!condition->can_pass(context)) {
       return false;
     }
   }

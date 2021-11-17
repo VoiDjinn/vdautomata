@@ -480,6 +480,7 @@ void VDAcContext::_bind_methods() {
   ADD_SIGNAL(MethodInfo("state_data_added", PropertyInfo(Variant::NIL, "data"), PropertyInfo(Variant::STRING, "path")));
   ADD_SIGNAL(MethodInfo("active_structure_added", PropertyInfo(Variant::NIL, "added_state_structure")));
   ADD_SIGNAL(MethodInfo("active_structure_removed", PropertyInfo(Variant::NIL, "removed_state_structure")));
+  ADD_SIGNAL(MethodInfo("active_structures_changed"));
 }
 
 void VDAcContext::_setup() {}
@@ -613,9 +614,29 @@ void VDAcContext::remove_active_structure(Ref<VDAcStateStructure> structure) {
   }
 }
 
-// TODO: rework
 void VDAcContext::set_active_structures(Vector<Ref<VDAcStateStructure>> structures) {
-  active_structures = structures;
+  int added = 0;
+  int removed = 0;
+  for(int i = 0; i < structures.size(); i++) {
+    Ref<VDAcStateStructure> active_structure = structures[i];
+    if(active_structures.find(active_structure) < 0) {
+      add_active_structure(active_structure);
+      added++;
+    }
+  }
+  int active_structs_index;
+  for(active_structs_index = 0; active_structs_index < active_structures.size(); active_structs_index++) {
+    Ref<VDAcStateStructure> active_structure = active_structures[active_structs_index];
+    if(structures.find(active_structure) < 0) {
+      remove_active_structure(active_structure);
+      active_structs_index--;
+      removed++;
+    }
+  }
+  if(removed > 0 || added > 0) {
+    emit_signal("active_structures_changed");
+    property_list_changed_notify();
+  }
 }
 
 Vector<Ref<VDAcStateStructure>> VDAcContext::get_active_structures() const {

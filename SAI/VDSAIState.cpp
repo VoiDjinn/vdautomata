@@ -1,348 +1,294 @@
 #include "VDSAIState.h"
+
 //////////
-// VDAsaiBehaviorState
+// VDAsaiSteeringForce
 //////////
-VDAsaiBehaviorState::VDAsaiBehaviorState() {}
+VDAsaiSteeringForce::VDAsaiSteeringForce() {}
 
-void VDAsaiBehaviorState::_bind_methods()
-{
-    ClassDB::bind_method ( D_METHOD ( "set_key_acceleration", "key" ), &VDAsaiBehaviorState::set_key_acceleration );
-    ClassDB::bind_method ( D_METHOD ( "get_key_acceleration" ), &VDAsaiBehaviorState::get_key_acceleration );
+void VDAsaiSteeringForce::_bind_methods() {
+  ClassDB::bind_method(D_METHOD("set_velocity", "velocity"), &VDAsaiSteeringForce::set_velocity);
+  ClassDB::bind_method(D_METHOD("get_velocity"), &VDAsaiSteeringForce::get_velocity);
+  ClassDB::bind_method(D_METHOD("set_max_velocity", "max_velocity"), &VDAsaiSteeringForce::set_max_velocity);
+  ClassDB::bind_method(D_METHOD("get_max_velocity"), &VDAsaiSteeringForce::get_max_velocity);
+  ClassDB::bind_method(D_METHOD("set_position", "position"), &VDAsaiSteeringForce::set_position);
+  ClassDB::bind_method(D_METHOD("get_position"), &VDAsaiSteeringForce::get_position);
+  ClassDB::bind_method(D_METHOD("set_mass", "mass"), &VDAsaiSteeringForce::set_mass);
+  ClassDB::bind_method(D_METHOD("get_mass"), &VDAsaiSteeringForce::get_mass);
 
-    BIND_VMETHOD ( MethodInfo ( "_calculate_steering", PropertyInfo ( Variant::OBJECT, "acceleration", PROPERTY_HINT_NONE, "VDAsaiTargetAcceleration" ), PropertyInfo ( Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext" ) ) );
-
-    ADD_PROPERTY ( PropertyInfo ( Variant::STRING, "key_acceleration" ), "set_key_acceleration", "get_key_acceleration" );
+  ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "velocity"), "set_velocity", "get_velocity");
+  ADD_PROPERTY(PropertyInfo(Variant::REAL, "max_velocity"), "set_max_velocity", "get_max_velocity");
+  ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "position"), "set_position", "get_position");
+  ADD_PROPERTY(PropertyInfo(Variant::REAL, "mass"), "set_mass", "get_mass");
 }
 
-void VDAsaiBehaviorState::_calculate_steering ( Ref<VDAsaiTargetAcceleration> acceleration, Ref<VDAcContext> context )
-{
-    acceleration->set_zero();
+void VDAsaiSteeringForce::set_velocity(Vector3 velocity) {
+  this->velocity = velocity;
 }
 
-void VDAsaiBehaviorState::exit ( Ref<VDAcContext> context, Ref<VDAcStateStructure> structure )
-{
-    if ( context->get_context_params().has ( this->key_acceleration ) ) {
-        Ref<VDAsaiTargetAcceleration> acceleration = context->get_context_value ( this->key_acceleration );
-        acceleration->set_zero();
+Vector3 VDAsaiSteeringForce::get_velocity() const {
+  return velocity;
+}
+
+void VDAsaiSteeringForce::set_max_velocity(float max_velocity) {
+  this->max_velocity = max_velocity;
+}
+
+float VDAsaiSteeringForce::get_max_velocity() const {
+  return max_velocity;
+}
+
+void VDAsaiSteeringForce::set_position(Vector3 position) {
+  this->position = position;
+}
+
+Vector3 VDAsaiSteeringForce::get_position() const {
+  return position;
+}
+
+void VDAsaiSteeringForce::set_mass(float mass) {
+  this->mass = mass;
+}
+
+float VDAsaiSteeringForce::get_mass() const {
+  return mass;
+}
+//////////
+// VDAsaiState
+//////////
+VDAsaiState::VDAsaiState() {}
+
+void VDAsaiState::_bind_methods() {
+  ClassDB::bind_method(D_METHOD("get_steering_force", "context"), &VDAsaiState::get_steering_force);
+  ClassDB::bind_method(D_METHOD("_on_calculation", "steering_force", "context", "delta"), &VDAsaiState::_on_calculation);
+  ClassDB::bind_method(D_METHOD("_apply_velocity", "new_velocity", "context", "delta"), &VDAsaiState::_apply_velocity);
+
+  ClassDB::bind_method(D_METHOD("set_steering_force_param_key", "param_key"), &VDAsaiState::set_steering_force_param_key);
+  ClassDB::bind_method(D_METHOD("get_steering_force_param_key"), &VDAsaiState::get_steering_force_param_key);
+
+  BIND_VMETHOD(MethodInfo("get_steering_force", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext")));
+  BIND_VMETHOD(MethodInfo("_on_calculation", PropertyInfo(Variant::OBJECT, "steering_force", PROPERTY_HINT_RESOURCE_TYPE, "VDAsaiSteeringForce"), PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::REAL, "delta")));
+  BIND_VMETHOD(MethodInfo("_apply_velocity", PropertyInfo(Variant::VECTOR3, "new_velocity"), PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::REAL, "delta")));
+
+  ADD_PROPERTY(PropertyInfo(Variant::STRING, "steering_force_param_key"), "set_steering_force_param_key", "get_steering_force_param_key");
+}
+
+Ref<VDAsaiSteeringForce> VDAsaiState::get_steering_force(Ref<VDAcContext> context) {
+  Ref<VDAsaiSteeringForce> steering_force;
+  if(context->has_context_param(steering_force_param_key)) {
+    steering_force = context->get_context_value(steering_force_param_key);
+  }
+  return steering_force;
+}
+
+Vector3 VDAsaiState::_on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta) {
+  return Vector3(0, 0, 0);
+}
+
+void VDAsaiState::_apply_velocity(Vector3 new_velocity, Vector3 old_velocity, Ref<VDAcContext> context, float delta) {}
+
+bool VDAsaiState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) {
+  Ref<VDAsaiSteeringForce> steering_force = call("get_steering_force", context);
+  if(steering_force.is_valid()) {
+    Vector3 old_velocity = steering_force->get_velocity();
+    Vector3 steering = call("_on_calculation", steering_force, context, delta);
+    steering = truncate(steering, steering_force->get_max_velocity());
+    steering = steering / steering_force->get_mass();
+    Vector3 new_velocity = truncate(steering_force->get_velocity() + steering, steering_force->get_max_velocity());
+    steering_force->set_velocity(new_velocity);
+
+    call("_apply_velocity", new_velocity, old_velocity, context, delta);
+    return true;
+  }
+  return false;
+}
+
+void VDAsaiState::set_steering_force_param_key(StringName param_key) {
+  this->steering_force_param_key = param_key;
+}
+
+StringName VDAsaiState::get_steering_force_param_key() const {
+  return steering_force_param_key;
+}
+//////////
+// VDAsaiCombinedBehavior
+//////////
+VDAsaiCombinedBehavior::VDAsaiCombinedBehavior() {}
+
+void VDAsaiCombinedBehavior::_bind_methods() {
+  ClassDB::bind_method(D_METHOD("set_behaviors", "new_behaviors"), &VDAsaiCombinedBehavior::set_behaviors_open);
+  ClassDB::bind_method(D_METHOD("get_behaviors"), &VDAsaiCombinedBehavior::get_behaviors_open);
+
+  ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "behaviors", PROPERTY_HINT_TYPE_STRING, "17/17:VDAsaiState"), "set_behaviors", "get_behaviors");
+}
+
+bool VDAsaiCombinedBehavior::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) {
+  Ref<VDAsaiSteeringForce> steering_force = call("get_steering_force", context);
+  if(steering_force.is_valid()) {
+    Vector3 old_velocity = steering_force->get_velocity();
+    Vector3 steering = Vector3(0, 0, 0);
+    for(int i = 0; i < behaviors.size(); i++) {
+      Ref<VDAsaiState> behavior = behaviors[i];
+      Vector3 behavior_steering = behavior->call("_on_calculation", steering_force, context, delta);
+      steering = steering + behavior_steering;
     }
+    steering = truncate(steering, steering_force->get_max_velocity());
+    steering = steering / steering_force->get_mass();
+    Vector3 new_velocity = truncate(steering_force->get_velocity() + steering, steering_force->get_max_velocity());
+    steering_force->set_velocity(new_velocity);
+    call("_apply_velocity", new_velocity, old_velocity, context, delta);
+    return true;
+  }
+  return false;
 }
 
-void VDAsaiBehaviorState::set_key_acceleration ( String key )
-{
-    this->key_acceleration = key;
-}
-
-String VDAsaiBehaviorState::get_key_acceleration() const
-{
-    return this->key_acceleration;
-}
-//////////
-// VDAsaiGroupBehaviorState
-//////////
-VDAsaiGroupBehaviorState::VDAsaiGroupBehaviorState() {}
-
-void VDAsaiGroupBehaviorState::_bind_methods()
-{
-    BIND_VMETHOD ( MethodInfo ( "_report_neighbor", PropertyInfo ( Variant::OBJECT, "neighbor", PROPERTY_HINT_NONE, "VDAsaiSteeringAgent" ), PropertyInfo ( Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext" ) ) );
-}
-//////////
-// VDAsaiTargetAcceleration
-//////////
-VDAsaiTargetAcceleration::VDAsaiTargetAcceleration() {}
-
-void VDAsaiTargetAcceleration::_bind_methods()
-{
-    ClassDB::bind_method ( D_METHOD ( "add_scaled_accel", "acceleration", "scalar" ), &VDAsaiTargetAcceleration::add_scaled_accel );
-    ClassDB::bind_method ( D_METHOD ( "set_zero" ), &VDAsaiTargetAcceleration::set_zero );
-    ClassDB::bind_method ( D_METHOD ( "get_magnitude" ), &VDAsaiTargetAcceleration::get_magnitude );
-    ClassDB::bind_method ( D_METHOD ( "get_magnitude_squared" ), &VDAsaiTargetAcceleration::get_magnitude_squared );
-}
-
-void VDAsaiTargetAcceleration::set_linear ( Vector3 linear )
-{
-    this->linear = linear;
-}
-
-Vector3 VDAsaiTargetAcceleration::get_linear() const
-{
-    return this->linear;
-}
-
-void VDAsaiTargetAcceleration::add_scaled_accel ( Ref<VDAsaiTargetAcceleration> acceleration, float scalar )
-{
-    linear += acceleration->linear * scalar;
-    angular += acceleration->angular * scalar;
-}
-
-void VDAsaiTargetAcceleration::set_zero()
-{
-    linear.x = 0.0;
-    linear.y = 0.0;
-    linear.z = 0.0;
-    angular = 0.0;
-}
-
-float VDAsaiTargetAcceleration::get_magnitude()
-{
-    return Math::sqrt ( get_magnitude_squared() );
-}
-
-float VDAsaiTargetAcceleration::get_magnitude_squared()
-{
-    return linear.length_squared() + angular * angular;
-}
-//////////
-// VDAsaiAgentLocation
-//////////
-VDAsaiAgentLocation::VDAsaiAgentLocation() {}
-
-void VDAsaiAgentLocation::_bind_methods()
-{
-    ClassDB::bind_method ( D_METHOD ( "get_position" ), &VDAsaiAgentLocation::get_position );
-}
-
-Vector3 VDAsaiAgentLocation::get_position()
-{
-    return this->position;
-}
-//////////
-// VDAsaiSteeringAgent
-//////////
-VDAsaiSteeringAgent::VDAsaiSteeringAgent() {}
-
-void VDAsaiSteeringAgent::_bind_methods() {}
-
-float VDAsaiSteeringAgent::get_linear_acceleration_max() const
-{
-    return this->linear_acceleration_max;
-}
-
-float VDAsaiSteeringAgent::get_bounding_radius() const
-{
-    return this->bounding_radius;
-}
-
-void VDAsaiSteeringAgent::set_tagged ( bool tagged )
-{
-    this->bis_tagged = tagged;
-}
-
-bool VDAsaiSteeringAgent::is_tagged() const
-{
-    return this->bis_tagged;
-}
-/////
-// VDAsaiProximity
-/////
-VDAsaiProximity::VDAsaiProximity() {}
-
-void VDAsaiProximity::_bind_methods() {
-    BIND_VMETHOD ( MethodInfo ( "_find_neighbors" ) );
-}
-/////
-// VDAsaiInfiniteProximity
-/////
-VDAsaiInfiniteProximity::VDAsaiInfiniteProximity() {}
-
-void VDAsaiInfiniteProximity::_bind_methods() {}
-
-int VDAsaiInfiniteProximity::_find_neighbors() {
-    int neighbor_count = 0;
-    int agent_count = agents.size();
-    for ( int i = 0; i < agent_count; i++ ) {
-        Ref<VDAsaiSteeringAgent> current_agent = agents[i];
-        if ( current_agent != agent ) {
-            //TODO: some check for agent
-            if ( true/*callback.call_func(current_agent)*/ ) {
-                neighbor_count += 1;
-            }
-        }
+void VDAsaiCombinedBehavior::set_behaviors(Vector<Ref<VDAsaiState>> new_behaviors) {
+  int added = 0;
+  int removed = 0;
+  for(int i = 0; i < new_behaviors.size(); i++) {
+    Ref<VDAsaiState> behavior = new_behaviors[i];
+    if(behaviors.find(behavior) < 0) {
+      behaviors.push_back(behavior);
+      added++;
     }
-    return neighbor_count;
-}
-/////
-// VDAsaiRadiusProximity
-/////
-VDAsaiRadiusProximity::VDAsaiRadiusProximity() {
-    this->scene_tree = SceneTree::get_singleton();
+  }
+  int behavior_index;
+  for(behavior_index = 0; behavior_index < behaviors.size(); behavior_index++) {
+    Ref<VDAsaiState> behavior = behaviors[behavior_index];
+    if(new_behaviors.find(behavior) < 0) {
+      behaviors.erase(behavior);
+      behavior_index--;
+      removed++;
+    }
+  }
+  if(removed > 0 || added > 0) {
+    property_list_changed_notify();
+  }
 }
 
-void VDAsaiRadiusProximity::_bind_methods() {}
-
-int VDAsaiRadiusProximity::_find_neighbors() {
-    int agent_count = agents.size();
-    int neighbor_count = 0;
-    int current_frame = scene_tree != nullptr ? scene_tree->get_frame() : last_frame;
-    if ( current_frame != last_frame ) {
-        last_frame = current_frame;
-        Vector3 owner_position = agent->get_position();
-        for ( int i = 0; i < agent_count; i++ ) {
-            Ref<VDAsaiSteeringAgent> current_agent = agents[i];
-            if ( current_agent != agent ) {
-                float distance_squared = owner_position.distance_squared_to ( current_agent->get_position() );
-                float range_to = radius + current_agent->get_bounding_radius();
-                if ( distance_squared < range_to * range_to ) {
-                    //TODO: some check for agent
-                    if ( true /*callback.call_func(current_agent)*/ ) {
-                        current_agent->set_tagged ( true );
-                        neighbor_count += 1;
-                        continue;
-                    }
-                }
-            }
-            current_agent->set_tagged ( false );
-        }
+void VDAsaiCombinedBehavior::set_behaviors_open(Array new_behaviors) {
+  Vector<Ref<VDAsaiState>> new_behavior_vector;
+  for(int i = 0; i < new_behaviors.size(); i++) {
+    Ref<VDAsaiState> behavior = new_behaviors[i];
+    if(behavior.is_valid()) {
+      new_behaviors.push_back(behavior);
     } else {
-        for ( int i = 0; i < agent_count; i++ ) {
-            Ref<VDAsaiSteeringAgent> current_agent = agents[i];
-            if ( current_agent != agent && current_agent->is_tagged() ) {
-                //TODO: some check for agent
-                if ( true /*callback.call_func(current_agent*/ ) {
-                    neighbor_count += 1;
-                }
-            }
-        }
+      // Creating an "empty" default state
+      Ref<VDAsaiState> new_behavior = Ref<VDAsaiState> (memnew(VDAsaiState));
+      new_behaviors.push_back(new_behavior);
     }
-    return neighbor_count;
-}
-/////
-// VDAsaiPath
-/////
-VDAsaiPath::VDAsaiPath() {}
-
-void VDAsaiPath::_bind_methods() {}
-
-void VDAsaiPath::init ( Array waypoints, bool is_open ) {
-    this->is_open = is_open;
-    create_path ( waypoints );
-    nearest_point_on_segment = waypoints[0];
-    nearest_point_on_path = waypoints[0];
+  }
+  set_behaviors(new_behavior_vector);
 }
 
-void VDAsaiPath::create_path ( Array waypoints ) {
-    if ( waypoints.size() < 2 ) {
-        ERR_FAIL_MSG ( "Waypoints cannot be null and must contain at least two (2) waypoints." );
-        return;
-    }
-    segments.clear();
-    length = 0.0;
-    Vector3 current = waypoints.front();
-    Vector3 previous;
-    for ( int i = 0; i < waypoints.size(); i++ ) {
-        previous = current;
-        if ( i < waypoints.size() ) {
-            current = waypoints[i];
-        } else if ( is_open ) {
-            break;
-        } else {
-            current = waypoints[0];
-        }
-        Ref<VDAsaiSegment> segment = Ref<VDAsaiSegment> ( memnew ( VDAsaiSegment() ) );
-        segment->init ( previous, current );
-        length += segment->get_length();
-        segment->set_cumulative_length ( length );
-        segments.push_back ( segment );
-    }
+Vector<Ref<VDAsaiState>> VDAsaiCombinedBehavior::get_behaviors() const {
+  return behaviors;
 }
 
-float VDAsaiPath::calculate_distance ( Vector3 agent_current_position ) {
-    if ( segments.size() == 0 ) {
-        return 0.0;
-    }
-    float smallest_distance_squared = Math_INF;
-    Ref<VDAsaiSegment> nearest_segment;
-    for ( int i = 0; i < segments.size(); i++ ) {
-        Ref<VDAsaiSegment> segment = segments[i];
-        float distance_squared = calculate_point_segment_distance_squared (
-                                     segment->get_begin(), segment->get_end(), agent_current_position
-                                 );
-        if ( distance_squared < smallest_distance_squared ) {
-            nearest_point_on_path = nearest_point_on_segment;
-            smallest_distance_squared = distance_squared;
-            nearest_segment = segment;
-        }
-    }
-    float length_on_path = ( nearest_segment->get_cumulative_length()
-                             - nearest_point_on_path.distance_to ( nearest_segment->get_end() ) );
-    return length_on_path;
+Array VDAsaiCombinedBehavior::get_behaviors_open() const {
+  Array open_behavior;
+  for(int i = 0; i < behaviors.size(); i++) {
+    Ref<VDAsaiState> behavior = behaviors[i];
+    open_behavior.push_back(behavior);
+  }
+  return open_behavior;
+}
+//////////
+// VDAsaiTargetBehavior
+//////////
+VDAsaiTargetBehavior::VDAsaiTargetBehavior() {}
+
+void VDAsaiTargetBehavior::_bind_methods() {
+  ClassDB::bind_method(D_METHOD("get_target_position", "context"), &VDAsaiTargetBehavior::get_target_position);
+  ClassDB::bind_method(D_METHOD("set_target_position_param_key", "param_key"), &VDAsaiTargetBehavior::set_target_position_param_key);
+  ClassDB::bind_method(D_METHOD("get_target_position_param_key"), &VDAsaiTargetBehavior::get_target_position_param_key);
+  ClassDB::bind_method(D_METHOD("set_direction_type", "type"), &VDAsaiTargetBehavior::set_direction_type);
+  ClassDB::bind_method(D_METHOD("get_direction_type"), &VDAsaiTargetBehavior::get_direction_type);
+
+  BIND_VMETHOD(MethodInfo("get_target_position", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext")));
+
+  BIND_ENUM_CONSTANT(TOWARDS);
+  BIND_ENUM_CONSTANT(AWAY);
+
+  ADD_PROPERTY(PropertyInfo(Variant::STRING, "target_position_param_key"), "set_target_position_param_key", "get_target_position_param_key");
+  ADD_PROPERTY(PropertyInfo(Variant::INT, "direction_type", PROPERTY_HINT_ENUM, "TOWARDS,AWAY"), "set_direction_type", "get_direction_type");
 }
 
-Vector3 VDAsaiPath::calculate_target_position ( float target_distance ) {
-    if ( is_open ) {
-        target_distance = CLAMP ( target_distance, 0, length );
-    } else {
-        if ( target_distance < 0 ) {
-            target_distance = length + fmod ( target_distance, length );
-        } else if ( target_distance > length ) {
-            target_distance = fmod ( target_distance, length );
-        }
-    }
-    Ref<VDAsaiSegment> desired_segment;
-    for ( int i = 0; i < segments.size(); i++ ) {
-        Ref<VDAsaiSegment> segment = segments[i];
-        if ( segment->get_cumulative_length() >= target_distance ) {
-            desired_segment = segment;
-            break;
-        }
-    }
-    if ( desired_segment.is_null() ) {
-        desired_segment = segments.back();
-    }
-    float distance = desired_segment->get_cumulative_length() - target_distance;
-    return ( ( ( desired_segment->get_begin() - desired_segment->get_end()
-               ) * ( distance / desired_segment->get_length() ) )
-             + desired_segment->get_end() );
+Vector3 VDAsaiTargetBehavior::_on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta) {
+  Vector3 target = call("get_target_position", context);
+  Vector3 desired = target - steering_force->get_position();
+  desired.normalize();
+  desired *= steering_force->get_max_velocity();
+  Vector3 steering = desired - steering_force->get_velocity();
+  if(direction_type == AWAY) steering *= -1;
+  return steering;
 }
 
-Vector3 VDAsaiPath::get_start_point() {
-    Ref<VDAsaiSegment> start_segment = segments.front()->get();
-    return start_segment->get_begin();
+Vector3 VDAsaiTargetBehavior::get_target_position(Ref<VDAcContext> context) const {
+  Vector3 target_position = Vector3(0, 0, 0);
+  if(context->has_context_param(target_position_param_key)) {
+    return context->get_context_value(target_position_param_key);
+  }
+  return target_position;
 }
 
-Vector3 VDAsaiPath::get_end_point() {
-    Ref<VDAsaiSegment> end_segment = segments.back()->get();
-    return end_segment->get_end();
+void VDAsaiTargetBehavior::set_direction_type(VDAsaiTargetBehavior::DirectionType type) {
+  direction_type = type;
 }
 
-float VDAsaiPath::calculate_point_segment_distance_squared ( Vector3 start, Vector3 end, Vector3 position ) {
-    nearest_point_on_segment = start;
-    Vector3 start_end = end - start;
-    float start_end_length_squared = start_end.length_squared();
-    if ( start_end_length_squared != 0 ) {
-        float t = ( position - start ).dot ( start_end ) / start_end_length_squared;
-        nearest_point_on_segment += start_end * CLAMP ( t, 0, 1 );
-    }
-    return nearest_point_on_segment.distance_squared_to ( position );
-}
-/////
-// VDAsaiSegment
-/////
-VDAsaiSegment::VDAsaiSegment() {}
-
-void VDAsaiSegment::_bind_methods() {}
-
-void VDAsaiSegment::init ( Vector3 begin, Vector3 end ) {
-    this->begin = begin;
-    this->end = end;
-    this->length = begin.distance_to ( end );
+VDAsaiTargetBehavior::DirectionType VDAsaiTargetBehavior::get_direction_type() const {
+  return direction_type;
 }
 
-float VDAsaiSegment::get_length() const {
-    return this->length;
+void VDAsaiTargetBehavior::set_target_position_param_key(StringName param_key) {
+  target_position_param_key = param_key;
 }
 
-void VDAsaiSegment::set_cumulative_length ( float length ) {
-    this->cumulative_length = length;
+StringName VDAsaiTargetBehavior::get_target_position_param_key() const {
+  return target_position_param_key;
+}
+//////////
+// VDAsaiNearingBehavior
+//////////
+VDAsaiNearingBehavior::VDAsaiNearingBehavior() {}
+
+void VDAsaiNearingBehavior::_bind_methods() {
+  ClassDB::bind_method(D_METHOD("get_radius", "context"), &VDAsaiNearingBehavior::get_radius);
+  ClassDB::bind_method(D_METHOD("set_radius_param_key", "param_key"), &VDAsaiNearingBehavior::set_radius_param_key);
+  ClassDB::bind_method(D_METHOD("get_radius_param_key"), &VDAsaiNearingBehavior::get_radius_param_key);
+
+  BIND_VMETHOD(MethodInfo("get_radius", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext")));
+
+  ADD_PROPERTY(PropertyInfo(Variant::STRING, "radius_param_key"), "set_radius_param_key", "get_radius_param_key");
 }
 
-float VDAsaiSegment::get_cumulative_length() const {
-    return this->cumulative_length;
+Vector3 VDAsaiNearingBehavior::_on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta) {
+  Vector3 steering = Vector3(0, 0, 0);
+  Vector3 target_position = call("get_target_position", context);
+  float slowing_radius = call("get_radius", context);
+  Vector3 desired = target_position - steering_force->get_position();
+  float distance = desired.length();
+  if(distance < slowing_radius) {
+    desired = desired.normalized() * steering_force->get_max_velocity() * (distance / slowing_radius);
+  } else {
+    desired = desired.normalized() * steering_force->get_max_velocity();
+  }
+  steering = desired - steering_force->get_velocity();
+  if(direction_type == AWAY) steering *= -1;
+  return steering;
 }
 
-Vector3 VDAsaiSegment::get_begin() const {
-    return this->begin;
+float VDAsaiNearingBehavior::get_radius(Ref<VDAcContext> context) const {
+  float radius = 1.0;
+  if(context->has_context_param(radius_param_key)) {
+    return context->get_context_value(radius_param_key);
+  }
+  return radius;
 }
 
-Vector3 VDAsaiSegment::get_end() const {
-    return this->end;
+void VDAsaiNearingBehavior::set_radius_param_key(StringName param_key) {
+  radius_param_key = param_key;
+}
+
+StringName VDAsaiNearingBehavior::get_radius_param_key() const {
+  return radius_param_key;
 }

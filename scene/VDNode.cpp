@@ -34,6 +34,11 @@ void VDAcNode::_bind_methods() {
   BIND_VMETHOD(MethodInfo("_on_stop"));
   BIND_VMETHOD(MethodInfo("_create_context"));
 
+  BIND_ENUM_CONSTANT(PROCESS);
+  BIND_ENUM_CONSTANT(PHYSICS_PROCESS);
+  BIND_ENUM_CONSTANT(ALL);
+  BIND_ENUM_CONSTANT(NONE);
+
   ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "automata", PROPERTY_HINT_RESOURCE_TYPE, "VDAcAutomata"), "set_automata", "get_automata");
   ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "automata_context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), "set_automata_context", "get_automata_context");
   ADD_PROPERTY(PropertyInfo(Variant::INT, "tick_mode", PROPERTY_HINT_ENUM, "PROCESS, PHYSICS_PROCESS, ALL, NONE"), "set_tick_mode", "get_tick_mode");
@@ -52,20 +57,18 @@ void VDAcNode::_notification(int p_what) {
     }
     break;
     case NOTIFICATION_PROCESS: {
-      context->set_delta(get_process_delta_time());
       Vector<Ref<VDAcStateStructure>> active_state_structures = context->get_active_structures();
       for(int i = 0; i < active_state_structures.size(); i++) {
         Ref<VDAcStateStructure> structure = active_state_structures[i];
-        structure->get_owning_state()->call("tick", context, structure);
+        structure->get_owning_state()->call("tick", context, structure, get_process_delta_time());
       }
     }
     break;
     case NOTIFICATION_PHYSICS_PROCESS: {
-      context->set_delta(get_physics_process_delta_time());
       Vector<Ref<VDAcStateStructure>> active_state_structures = context->get_active_structures();
       for(int i = 0; i < active_state_structures.size(); i++) {
         Ref<VDAcStateStructure> structure = active_state_structures[i];
-        structure->get_owning_state()->call("tick", context, structure);
+        structure->get_owning_state()->call("tick", context, structure, get_physics_process_delta_time());
       }
     }
     break;

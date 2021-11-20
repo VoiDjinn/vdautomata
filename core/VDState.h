@@ -25,26 +25,26 @@ protected:
     bool bis_listening_to_updates = true;
     bool bis_debug_mode = false;
 
-    virtual bool _on_tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual bool _on_tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta);
     virtual void _pre_init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _on_init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _pre_enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _on_enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
-    virtual void _on_update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param, Variant new_value, Variant old_value);
+    virtual void _on_update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, StringName param, Variant new_value, Variant old_value);
     virtual void _pre_exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _on_exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _pre_deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void _on_deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
-    virtual void _handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual void _handle_context_param_updated(StringName param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
 
     SceneTree* get_tree() const;
 public:
     VDAcState();
 
-    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
+    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta);
     virtual void init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
-    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param, Variant new_value, Variant old_value);
+    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, StringName param, Variant new_value, Variant old_value);
     virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
     virtual void deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
 
@@ -76,10 +76,10 @@ protected:
 public:
     VDAcParentState();
 
-    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) override;
     virtual void init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
     virtual void enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
-    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param, Variant new_value, Variant old_value) override;
+    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, StringName param, Variant new_value, Variant old_value) override;
     virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
     virtual void deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
 
@@ -124,12 +124,11 @@ class VDAcContext : public Resource
 protected:
     static void _bind_methods();
 
-    HashMap<Variant, Variant, VariantHasher> params;
-    List<Variant> param_keys;
+    //HashMap<Variant, Variant, VariantHasher> params;
+    HashMap<StringName, Variant> params;
+    List<StringName> param_keys;
     Ref<VDAcAutomata> owning_automata;
     Ref<VDAcBlackboard> blackboard;
-    float delta = 1.0;
-
     Vector<Ref<VDAcStateStructure>> active_structures;
     Vector<Ref<VDAcStateStructure>> queued_structures;
     //TODO: All state machine formalisms, including UML state machines, universally assume that a state machine completes processing of each event before it can start processing the next event.
@@ -142,20 +141,18 @@ public:
     VDAcContext();
     ~VDAcContext();
 
-    void set_context_params(HashMap<Variant, Variant, VariantHasher> new_params);
-    HashMap<Variant, Variant, VariantHasher> get_context_params() const;
+    void set_context_params(HashMap<StringName, Variant> new_params);
+    HashMap<StringName, Variant> get_context_params() const;
     void set_context_params_open(Dictionary new_params);
     Dictionary get_context_params_open() const;
-    void set_context_value(const Variant &key, const Variant &value, bool notify = true);
-    Variant get_context_value(const Variant &key) const;
-    bool has_context_param(const Variant &key);
+    void set_context_value(StringName key, const Variant &value, bool notify = true);
+    Variant get_context_value(StringName key) const;
+    bool has_context_param(StringName key);
 
     void set_owning_automata(Ref<VDAcAutomata> automata);
     Ref<VDAcAutomata> get_owning_automata() const;
     void set_blackboard(Ref<VDAcBlackboard> blackboard);
     Ref<VDAcBlackboard> get_blackboard() const;
-    void set_delta(float delta);
-    float get_delta() const;
 
     void add_active_structure(Ref<VDAcStateStructure> structure);
     void remove_active_structure(Ref<VDAcStateStructure> structure);

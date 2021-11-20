@@ -27,15 +27,15 @@ public:
 protected:
     static void _bind_methods();
 
-	Variant context_key;
+	StringName context_key;
 	Variant context_value;
 	VDValueComparator value_comparator = EQUALS;
 	Variant::Operator internal_comparator;
 
     virtual bool _on_check(Ref<VDAcContext> context) override;
 public:
-	void set_context_key(Variant key);
-	Variant get_context_key() const;
+	void set_context_key(StringName key);
+	StringName get_context_key() const;
 	void set_context_value(Variant key);
 	Variant get_context_value() const;
 	void set_value_comparator(VDValueComparator comparator);
@@ -49,8 +49,8 @@ VARIANT_ENUM_CAST(VDAcContextValueCondition::VDValueComparator);
 class VDAcContextParamsCondition : public VDAcCondition {
     GDCLASS(VDAcContextParamsCondition, VDAcCondition);
 
-    Vector<Variant> parameter_keys;
-    HashMap<Variant, Variant, VariantHasher> parameters;
+    Vector<StringName> parameter_keys;
+    HashMap<StringName, Variant> parameters;
 protected:
     static void _bind_methods();
 
@@ -58,9 +58,9 @@ protected:
 public:
     VDAcContextParamsCondition();
 
-    Vector<Variant> get_parameter_keys() const;
-    void set_parameters(HashMap<Variant, Variant, VariantHasher> new_parameters);
-    HashMap<Variant, Variant, VariantHasher> get_parameters() const;
+    Vector<StringName> get_parameter_keys() const;
+    void set_parameters(HashMap<StringName, Variant> new_parameters);
+    HashMap<StringName, Variant> get_parameters() const;
     void set_parameters_open(Dictionary new_parameters);
     Dictionary get_parameters_open();
 };

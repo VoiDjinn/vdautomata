@@ -5,7 +5,7 @@ VDAbtState::VDAbtState(){}
 
 void VDAbtState::_bind_methods() {}
 
-bool VDAbtState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure){
+bool VDAbtState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta){
     if(!this->is_active){
         return _fail(context);
     }

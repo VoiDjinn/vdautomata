@@ -3,8 +3,8 @@
 
 #include "../VDSAIState.h"
 
-class VDAsaiDBArrive : public VDAsaiBehaviorState {
-    GDCLASS(VDAsaiDBArrive, VDAsaiBehaviorState);
+class VDAsaiDBArrive : public VDAsaiState {
+    GDCLASS(VDAsaiDBArrive, VDAsaiState);
 protected:
     static void _bind_methods();
 public:

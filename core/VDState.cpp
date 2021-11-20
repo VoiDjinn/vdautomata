@@ -9,13 +9,13 @@ VDAcState::VDAcState() {
 }
 
 void VDAcState::_bind_methods() {
-  ClassDB::bind_method(D_METHOD("tick", "context", "structure"), &VDAcState::tick);
+  ClassDB::bind_method(D_METHOD("tick", "context", "structure", "delta"), &VDAcState::tick);
   ClassDB::bind_method(D_METHOD("init", "context", "structure"), &VDAcState::init);
   ClassDB::bind_method(D_METHOD("enter", "context", "structure"), &VDAcState::enter);
   ClassDB::bind_method(D_METHOD("update", "context", "structure", "param", "new_value", "old_value"), &VDAcState::update);
   ClassDB::bind_method(D_METHOD("exit", "context", "structure"), &VDAcState::exit);
   ClassDB::bind_method(D_METHOD("deinit", "context", "structure"), &VDAcState::deinit);
-  ClassDB::bind_method(D_METHOD("_on_tick", "context", "structure"), &VDAcState::_on_tick);
+  ClassDB::bind_method(D_METHOD("_on_tick", "context", "structure", "delta"), &VDAcState::_on_tick);
   ClassDB::bind_method(D_METHOD("_pre_init", "context", "structure"), &VDAcState::_pre_init);
   ClassDB::bind_method(D_METHOD("_on_init", "context", "structure"), &VDAcState::_on_init);
   ClassDB::bind_method(D_METHOD("_pre_enter", "context", "structure"), &VDAcState::_pre_enter);
@@ -43,12 +43,12 @@ void VDAcState::_bind_methods() {
   ClassDB::bind_method(D_METHOD("is_debug_mode"), &VDAcState::is_debug_mode);
 
   // State-Flow (virtual methods)
-  BIND_VMETHOD(MethodInfo("_on_tick", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
+  BIND_VMETHOD(MethodInfo("_on_tick", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure"), PropertyInfo(Variant::REAL, "delta")));
   BIND_VMETHOD(MethodInfo("_pre_init", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
   BIND_VMETHOD(MethodInfo("_on_init", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
   BIND_VMETHOD(MethodInfo("_pre_enter", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
   BIND_VMETHOD(MethodInfo("_on_enter", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
-  BIND_VMETHOD(MethodInfo("_on_update", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure"), PropertyInfo(Variant::NIL, "param"), PropertyInfo(Variant::NIL, "new_value"), PropertyInfo(Variant::NIL, "old_value")));
+  BIND_VMETHOD(MethodInfo("_on_update", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure"), PropertyInfo(Variant::STRING, "param"), PropertyInfo(Variant::NIL, "new_value"), PropertyInfo(Variant::NIL, "old_value")));
   BIND_VMETHOD(MethodInfo("_pre_exit", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
   BIND_VMETHOD(MethodInfo("_on_exit", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
   BIND_VMETHOD(MethodInfo("_pre_deinit", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::OBJECT, "structure", PROPERTY_HINT_RESOURCE_TYPE, "VDAcStateStructure")));
@@ -68,8 +68,8 @@ void VDAcState::_bind_methods() {
   ADD_SIGNAL(MethodInfo("is_listening_to_updates_changed", PropertyInfo(Variant::BOOL, "new_mode")));
 }
 
-bool VDAcState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
-  if(bhas_tick) return call("_on_tick", context, structure);
+bool VDAcState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) {
+  if(bhas_tick) return call("_on_tick", context, structure, delta);
   return false;
 }
 
@@ -96,7 +96,7 @@ void VDAcState::enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structur
   }
   call("_on_enter", context, structure);
 }
-void VDAcState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param, Variant new_value, Variant old_value) {
+void VDAcState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, StringName param, Variant new_value, Variant old_value) {
   call("_on_update", context, structure, param, new_value, old_value);
 }
 
@@ -113,20 +113,20 @@ void VDAcState::deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structu
   call("_on_deinit", context, structure);
 }
 
-bool VDAcState::_on_tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
+bool VDAcState::_on_tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) {
   return true;
 }
 void VDAcState::_pre_init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {}
 void VDAcState::_on_init(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {}
 void VDAcState::_pre_enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {}
 void VDAcState::_on_enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {}
-void VDAcState::_on_update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param, Variant new_value, Variant old_value) {}
+void VDAcState::_on_update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, StringName param, Variant new_value, Variant old_value) {}
 void VDAcState::_pre_exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {}
 void VDAcState::_on_exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {}
 void VDAcState::_pre_deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {}
 void VDAcState::_on_deinit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {}
 
-void VDAcState::_handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
+void VDAcState::_handle_context_param_updated(StringName param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
   call("update", context, structure, param, new_value, old_value);
 }
 
@@ -221,15 +221,15 @@ void VDAcParentState::_bind_methods() {
   ADD_SIGNAL(MethodInfo("substates_changed"));
 }
 
-bool VDAcParentState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
+bool VDAcParentState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) {
   if(bhas_tick) {
-    call("_on_tick", context, structure);
+    call("_on_tick", context, structure, delta);
     HashMap<StringName, Ref<VDAcStateStructure>> substate_structures = structure->get_children_structures();
     List<StringName> keys = structure->get_children_structure_paths();
     for(int i = 0; i < keys.size(); i++) {
       Ref<VDAcStateStructure> substate_structure = substate_structures[keys[i]];
       Ref<VDAcState> substate = substate_structure->get_owning_state();
-      substate->call("tick", context, substate_structure);
+      substate->call("tick", context, substate_structure, delta);
     }
     return true;
   } else return false;
@@ -267,7 +267,7 @@ void VDAcParentState::enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> st
   call("_on_enter", context, structure);
 }
 
-void VDAcParentState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param, Variant new_value, Variant old_value) {
+void VDAcParentState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, StringName param, Variant new_value, Variant old_value) {
   call("_on_update", context, structure, param, new_value, old_value);
   List<StringName> keys = structure->get_children_structure_paths();
   HashMap< StringName, Ref< VDAcStateStructure > > sub_structures = structure->get_children_structures();
@@ -450,13 +450,11 @@ void VDAcContext::_bind_methods() {
   ClassDB::bind_method(D_METHOD("get_tree"), &VDAcContext::get_tree);
 
   ClassDB::bind_method(D_METHOD("set_context_params", "params"), &VDAcContext::set_context_params_open);
-  ClassDB::bind_method(D_METHOD("set_owning_automata", "automata"), &VDAcContext::set_owning_automata);
-  ClassDB::bind_method(D_METHOD("set_blackboard", "blackboard"), &VDAcContext::set_blackboard);
-  ClassDB::bind_method(D_METHOD("set_delta", "delta"), &VDAcContext::set_delta);
   ClassDB::bind_method(D_METHOD("get_context_params"), &VDAcContext::get_context_params_open);
+  ClassDB::bind_method(D_METHOD("set_owning_automata", "automata"), &VDAcContext::set_owning_automata);
   ClassDB::bind_method(D_METHOD("get_owning_automata"), &VDAcContext::get_owning_automata);
+  ClassDB::bind_method(D_METHOD("set_blackboard", "blackboard"), &VDAcContext::set_blackboard);
   ClassDB::bind_method(D_METHOD("get_blackboard"), &VDAcContext::get_blackboard);
-  ClassDB::bind_method(D_METHOD("get_delta"), &VDAcContext::get_delta);
 
   ClassDB::bind_method(D_METHOD("set_context_value", "key", "value", "notify"), &VDAcContext::set_context_value, DEFVAL(true));
   ClassDB::bind_method(D_METHOD("get_context_value", "key"), &VDAcContext::get_context_value);
@@ -474,7 +472,7 @@ void VDAcContext::_bind_methods() {
 
   ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "params"), "set_context_params", "get_context_params");
 
-  ADD_SIGNAL(MethodInfo("context_param_updated", PropertyInfo(Variant::NIL, "param"), PropertyInfo(Variant::NIL, "new_value"), PropertyInfo(Variant::NIL, "old_value")));
+  ADD_SIGNAL(MethodInfo("context_param_updated", PropertyInfo(Variant::STRING, "param"), PropertyInfo(Variant::NIL, "new_value"), PropertyInfo(Variant::NIL, "old_value")));
   ADD_SIGNAL(MethodInfo("context_params_changed"));
   ADD_SIGNAL(MethodInfo("state_data_changed", PropertyInfo(Variant::OBJECT, "new_data"), PropertyInfo(Variant::OBJECT, "old_data"), PropertyInfo(Variant::STRING, "path")));
   ADD_SIGNAL(MethodInfo("state_data_added", PropertyInfo(Variant::NIL, "data"), PropertyInfo(Variant::STRING, "path")));
@@ -490,23 +488,30 @@ SceneTree * VDAcContext::get_tree() const {
   return SceneTree::get_singleton();
 }
 
-void VDAcContext::set_context_params(HashMap<Variant, Variant, VariantHasher> new_params) {
+void VDAcContext::set_context_params(HashMap<StringName, Variant> new_params) {
+  int changed = 0;
   int removed = 0;
-  List<Variant> new_entries;
-  List<Variant> contained_entries;
-  List<Variant> new_keys;
+  List<StringName> new_entries;
+  List<StringName> contained_entries;
+  List<StringName> new_keys;
   new_params.get_key_list(&new_keys);
   for(int i = 0; i < new_keys.size(); i++) {
-    const Variant &new_key = new_keys[i];
+    StringName new_key = new_keys[i];
     if(params.has(new_key)) {
       contained_entries.push_back(new_key);
+      const Variant &cur_param_value = params[new_key];
+      const Variant &new_param_value = new_params[new_key];
+      if(cur_param_value != new_param_value) {
+        set_context_value(new_key, new_param_value);
+        changed++;
+      }
     } else {
       new_entries.push_back(new_key);
     }
   }
   int param_index;
   for(param_index = 0; param_index < param_keys.size(); param_index++) {
-    const Variant &key = param_keys[param_index];
+    StringName key = param_keys[param_index];
     if(!contained_entries.find(key)) {
       param_keys.erase(key);
       params.erase(key);
@@ -515,26 +520,25 @@ void VDAcContext::set_context_params(HashMap<Variant, Variant, VariantHasher> ne
     }
   }
   for(int i = 0; i < new_entries.size(); i++) {
-    const Variant &new_key = new_entries[i];
-    const Variant &new_param = new_params[new_key];
-    param_keys.push_back(new_key);
-    params.set(new_key, new_param);
+    StringName new_key = new_entries[i];
+    const Variant &new_param_value = new_params[new_key];
+    set_context_value(new_key, new_param_value);
   }
-  if(removed > 0 || new_entries.size() > 0) {
+  if(changed > 0 || removed > 0 || new_entries.size() > 0) {
     emit_signal("context_params_changed");
     property_list_changed_notify();
   }
 }
 
-HashMap<Variant, Variant, VariantHasher> VDAcContext::get_context_params() const {
+HashMap<StringName, Variant> VDAcContext::get_context_params() const {
   return params;
 }
 
 void VDAcContext::set_context_params_open(Dictionary new_params) {
   Array new_param_keys = new_params.keys();
-  HashMap<Variant, Variant, VariantHasher> hash_params;
+  HashMap<StringName, Variant> hash_params;
   for(int i = 0; i < new_param_keys.size(); i++) {
-    const Variant &key = new_param_keys[i];
+    StringName key = new_param_keys[i];
     const Variant &value = new_params[key];
     hash_params[key] = value;
   }
@@ -543,17 +547,17 @@ void VDAcContext::set_context_params_open(Dictionary new_params) {
 
 Dictionary VDAcContext::get_context_params_open() const {
   Dictionary dict;
-  List<Variant> keys;
+  List<StringName> keys;
   params.get_key_list(&keys);
   for(int i = 0; i < keys.size(); i++) {
-    const Variant &key = keys[i];
+    StringName key = keys[i];
     const Variant &value = params[key];
     dict[key] = value;
   }
   return dict;
 }
 
-void VDAcContext::set_context_value(const Variant &key, const Variant &value, bool notify) {
+void VDAcContext::set_context_value(StringName key, const Variant &value, bool notify) {
   Variant old_value;
   if(!param_keys.find(key)) {
     param_keys.push_back(key);
@@ -566,11 +570,11 @@ void VDAcContext::set_context_value(const Variant &key, const Variant &value, bo
   }
 }
 
-Variant VDAcContext::get_context_value(const Variant &key) const {
+Variant VDAcContext::get_context_value(StringName key) const {
   return params[key];
 }
 
-bool VDAcContext::has_context_param(const Variant &key) {
+bool VDAcContext::has_context_param(StringName key) {
   return param_keys.find(key);
 }
 
@@ -588,14 +592,6 @@ void VDAcContext::set_blackboard(Ref<VDAcBlackboard> blackboard) {
 
 Ref<VDAcBlackboard> VDAcContext::get_blackboard() const {
   return blackboard;
-}
-
-void VDAcContext::set_delta(float delta) {
-  this->delta = delta;
-}
-
-float VDAcContext::get_delta() const {
-  return delta;
 }
 
 void VDAcContext::add_active_structure(Ref<VDAcStateStructure> structure) {
@@ -700,6 +696,3 @@ Dictionary VDAcContext::get_state_datas_open() const {
 VDAcBlackboard::VDAcBlackboard() {}
 
 void VDAcBlackboard::_bind_methods() {}
-
-
-

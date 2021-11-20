@@ -84,9 +84,9 @@ protected:
 public:
     VDAhsmCompositeState();
 
-    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) override;
     virtual void enter(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
-    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param = 0, Variant new_value = 0, Variant old_value = 0) override;
+    virtual void update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, StringName param = "", Variant new_value = 0, Variant old_value = 0) override;
     virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
 
     void add_transition(Ref<VDAhsmTransition> transition, int pos = -1);
@@ -102,7 +102,7 @@ public:
 protected:
     virtual void _on_substate_added(Ref<VDAcState> substate) override;
     virtual void _on_substate_removed(Ref<VDAcState> substate) override;
-    virtual void _handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    virtual void _handle_context_param_updated(StringName param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
 
     void _internal_transition(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure);
 private:

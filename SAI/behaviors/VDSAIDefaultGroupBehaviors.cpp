@@ -1,5 +1,6 @@
 #include "VDSAIDefaultGroupBehaviors.h"
 
+/*
 VDAsaiDGBSeparation::VDAsaiDGBSeparation() {}
 
 void VDAsaiDGBSeparation::_bind_methods() {}
@@ -22,3 +23,4 @@ bool VDAsaiDGBSeparation::_report_neighbor ( Ref<VDAsaiSteeringAgent> neighbor, 
     acceleration->set_linear ( acceleration->get_linear() + to_agent * ( strength / sqrt ( distance_squared ) ) );
     return true;
 }
+*/

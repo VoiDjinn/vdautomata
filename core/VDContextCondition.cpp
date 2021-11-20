@@ -15,8 +15,8 @@ void VDAcContextValueCondition::_bind_methods() {
   ClassDB::bind_method(D_METHOD("set_value_comparator", "value_comparator"), &VDAcContextValueCondition::set_value_comparator);
   ClassDB::bind_method(D_METHOD("get_value_comparator"), &VDAcContextValueCondition::get_value_comparator);
 
-  ADD_PROPERTY(PropertyInfo(Variant::STRING, "value_comparator", PROPERTY_HINT_ENUM, "EQUALS,LESS,LESS_THAN,GREATER,GREATER_THAN,IN"), "set_value_comparator", "get_value_comparator");
-  ADD_PROPERTY(PropertyInfo(Variant::NIL, "context_key", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_NIL_IS_VARIANT), "set_context_key", "get_context_key");
+  ADD_PROPERTY(PropertyInfo(Variant::INT, "value_comparator", PROPERTY_HINT_ENUM, "EQUALS,LESS,LESS_THAN,GREATER,GREATER_THAN,IN"), "set_value_comparator", "get_value_comparator");
+  ADD_PROPERTY(PropertyInfo(Variant::STRING, "context_key"), "set_context_key", "get_context_key");
   ADD_PROPERTY(PropertyInfo(Variant::NIL, "context_value", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_NIL_IS_VARIANT), "set_context_value", "get_context_value");
 }
 
@@ -28,7 +28,7 @@ bool VDAcContextValueCondition::_on_check(Ref<VDAcContext> context) {
   return false;
 }
 
-void VDAcContextValueCondition::set_context_key(Variant key) {
+void VDAcContextValueCondition::set_context_key(StringName key) {
   if(context_key != key) {
     Variant old_key = key;
     context_key = key;
@@ -36,7 +36,7 @@ void VDAcContextValueCondition::set_context_key(Variant key) {
   }
 }
 
-Variant VDAcContextValueCondition::get_context_key() const {
+StringName VDAcContextValueCondition::get_context_key() const {
   return context_key;
 }
 
@@ -81,9 +81,9 @@ void VDAcContextParamsCondition::_bind_methods() {
 }
 
 bool VDAcContextParamsCondition::_on_check(Ref<VDAcContext> context) {
-  HashMap<Variant, Variant, VariantHasher> context_params = context->get_context_params();
+  HashMap<StringName, Variant> context_params = context->get_context_params();
   for(int i = 0; i < parameter_keys.size(); i++) {
-    const Variant &key = parameter_keys[i];
+    StringName key = parameter_keys[i];
     const Variant &parameter = parameters[key];
     if(!context_params.has(key) || context_params[key] != parameter) {
       return false;
@@ -92,15 +92,15 @@ bool VDAcContextParamsCondition::_on_check(Ref<VDAcContext> context) {
   return true;
 }
 
-Vector<Variant> VDAcContextParamsCondition::get_parameter_keys() const {
+Vector<StringName> VDAcContextParamsCondition::get_parameter_keys() const {
   return parameter_keys;
 }
 
-void VDAcContextParamsCondition::set_parameters(HashMap<Variant, Variant, VariantHasher> new_parameters) {
+void VDAcContextParamsCondition::set_parameters(HashMap<StringName, Variant> new_parameters) {
   int removed = 0;
-  List<Variant> new_entries;
-  List<Variant> contained_entries;
-  List<Variant> new_keys;
+  List<StringName> new_entries;
+  List<StringName> contained_entries;
+  List<StringName> new_keys;
   new_parameters.get_key_list(&new_keys);
   for(int i = 0; i < new_keys.size(); i++) {
     const Variant &key = new_keys[i];
@@ -111,7 +111,7 @@ void VDAcContextParamsCondition::set_parameters(HashMap<Variant, Variant, Varian
     }
   }
   for(int i = 0; i < parameter_keys.size(); i++) {
-    const Variant &key = parameter_keys[i];
+    StringName key = parameter_keys[i];
     if(!contained_entries.find(key)) {
       parameters.erase(key);
       parameter_keys.erase(key);
@@ -120,7 +120,7 @@ void VDAcContextParamsCondition::set_parameters(HashMap<Variant, Variant, Varian
     }
   }
   for(int i = 0; i < new_entries.size(); i++) {
-    const Variant &key = new_entries[i];
+    StringName key = new_entries[i];
     parameters.set(key, new_parameters[key]);
     parameter_keys.push_back(key);
     emit_signal("parameter_added", key);
@@ -131,16 +131,16 @@ void VDAcContextParamsCondition::set_parameters(HashMap<Variant, Variant, Varian
   }
 }
 
-HashMap<Variant, Variant, VariantHasher> VDAcContextParamsCondition::get_parameters() const {
+HashMap<StringName, Variant> VDAcContextParamsCondition::get_parameters() const {
   return parameters;
 }
 
 void VDAcContextParamsCondition::set_parameters_open(Dictionary new_parameters) {
-  HashMap<Variant, Variant, VariantHasher> hash_parameters;
+  HashMap<StringName, Variant> hash_parameters;
   List<Variant> keys;
   new_parameters.get_key_list(&keys);
   for(int i = 0; i < keys.size(); i++) {
-    const Variant &key = keys[i];
+    StringName key = keys[i];
     const Variant &value = new_parameters[key];
     hash_parameters[key] = value;
   }
@@ -150,7 +150,7 @@ void VDAcContextParamsCondition::set_parameters_open(Dictionary new_parameters) 
 Dictionary VDAcContextParamsCondition::get_parameters_open() {
   Dictionary dict;
   for(int i = 0; i < parameter_keys.size(); i++) {
-    const Variant &key = parameter_keys[i];
+    StringName key = parameter_keys[i];
     const Variant &value = parameters[key];
     dict[key] = value;
   }

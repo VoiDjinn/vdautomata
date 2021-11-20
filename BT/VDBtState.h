@@ -23,7 +23,7 @@ protected:
 public:
     VDAbtState();
 
-    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
+    virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) override;
 };
 
 #endif

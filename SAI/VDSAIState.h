@@ -1,208 +1,122 @@
-#ifndef VDSAISTATE_H
-#define VDSAISTATE_H
+#ifndef VDASAISTATE_H
+#define VDASAISTATE_H
 
-#include "core/reference.h"
-#include "scene/main/scene_tree.h"
 #include "../core/VDState.h"
 
-class VDAsaiTargetAcceleration;
-class VDAsaiSteeringAgent;
-class VDAsaiProximity;
-class VDAsaiSegment;
 //////////
-// VDAsaiBehaviorState
+// VDAsaiSteeringForce
 //////////
-class VDAsaiBehaviorState : public VDAcState {
-    GDCLASS(VDAsaiBehaviorState, VDAcState);
+class VDAsaiSteeringForce : public Resource {
+	GDCLASS(VDAsaiSteeringForce, Resource);
 protected:
     static void _bind_methods();
 
-    String key_acceleration = "SAIAcceleration";
-    Ref<VDAsaiSteeringAgent> agent;
-
-    virtual void _calculate_steering(Ref<VDAsaiTargetAcceleration> acceleration, Ref<VDAcContext> context);
+	Vector3 velocity;
+	float max_velocity;
+	Vector3 position;
+	float mass;
 public:
-    VDAsaiBehaviorState();
+	VDAsaiSteeringForce();
 
-    virtual void exit(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) override;
-
-    void set_key_acceleration(String key);
-    String get_key_acceleration() const;
+	void set_velocity(Vector3 velocity);
+	Vector3 get_velocity() const;
+	void set_max_velocity(float max_velocity);
+	float get_max_velocity() const;
+	void set_position(Vector3 position);
+	Vector3 get_position() const;
+	void set_mass(float mass);
+	float get_mass() const;
 };
 //////////
-// VDAsaiGroupBehaviorState
+// VDAsaiState
 //////////
-class VDAsaiGroupBehaviorState : public VDAsaiBehaviorState {
-    GDCLASS(VDAsaiGroupBehaviorState, VDAsaiBehaviorState);
+class VDAsaiState : public VDAcState {
+	GDCLASS(VDAsaiState, VDAcState);
 protected:
     static void _bind_methods();
 
-    Ref<VDAsaiProximity> proximity;
+	//Variant steering_force_param_key;
+	StringName steering_force_param_key;
 
-    virtual bool _report_neighbor(Ref<VDAsaiSteeringAgent> neighbor, Ref<VDAcContext> context) {
-        return false;
-    }
+	virtual Ref<VDAsaiSteeringForce> get_steering_force(Ref<VDAcContext> context);
+	virtual Vector3 _on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta);
+	virtual void _apply_velocity(Vector3 new_velocity, Vector3 old_velocity, Ref<VDAcContext> context, float delta);
+
+	Vector3 truncate(Vector3 vector, float max) {
+		float scale = max / vector.length();
+		scale = MIN(scale, 1.0);
+		return vector * scale;
+	}
 public:
-    VDAsaiGroupBehaviorState();
+	VDAsaiState();
+
+	virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) override;
+	void set_steering_force_param_key(StringName param_key);
+	StringName get_steering_force_param_key() const;
 };
 //////////
-// VDAsaiTargetAcceleration
+// VDAsaiCombinedBehavior
 //////////
-class VDAsaiTargetAcceleration : public Reference {
-    GDCLASS(VDAsaiTargetAcceleration, Reference);
-
-    Vector3 linear = Vector3(0.0, 0.0, 0.0);
-    float angular = 0.0;
+class VDAsaiCombinedBehavior : public VDAsaiState {
+	GDCLASS(VDAsaiCombinedBehavior, VDAsaiState);
 protected:
     static void _bind_methods();
+
+	Vector<Ref<VDAsaiState>> behaviors;
 public:
-    VDAsaiTargetAcceleration();
+	VDAsaiCombinedBehavior();
 
-    void set_linear(Vector3 linear);
-    Vector3 get_linear() const;
+	virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) override;
 
-    void add_scaled_accel(Ref<VDAsaiTargetAcceleration> acceleration, float scalar);
-    void set_zero();
-    float get_magnitude();
-    float get_magnitude_squared();
+	void set_behaviors(Vector<Ref<VDAsaiState>> new_behaviors);
+	void set_behaviors_open(Array new_behaviors);
+	Vector<Ref<VDAsaiState>> get_behaviors() const;
+	Array get_behaviors_open() const;
 };
 //////////
-// VDAsaiAgentLocation
+// VDAsaiTargetBehavior
 //////////
-class VDAsaiAgentLocation : public Reference {
-    GDCLASS(VDAsaiAgentLocation, Reference);
+class VDAsaiTargetBehavior : public VDAsaiState {
+	GDCLASS(VDAsaiTargetBehavior, VDAsaiState);
+public:
+	enum DirectionType {
+		TOWARDS,
+		AWAY
+	};
 protected:
     static void _bind_methods();
 
-    Vector3 position = Vector3(0.0, 0.0, 0.0);
-    float orientation = 0.0;
-public:
-    VDAsaiAgentLocation();
+	StringName target_position_param_key;
+	DirectionType direction_type;
 
-    Vector3 get_position();
+	virtual Vector3 get_target_position(Ref<VDAcContext> context) const;
+	virtual Vector3 _on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta) override;
+public:
+	VDAsaiTargetBehavior();
+
+	void set_target_position_param_key(StringName param_key);
+	StringName get_target_position_param_key() const;
+	void set_direction_type(DirectionType type);
+	DirectionType get_direction_type() const;
 };
+
+VARIANT_ENUM_CAST(VDAsaiTargetBehavior::DirectionType);
 //////////
-// VDAsaiSteeringAgent
+// VDAsaiNearingBehavior
 //////////
-class VDAsaiSteeringAgent : public VDAsaiAgentLocation {
-    GDCLASS(VDAsaiSteeringAgent, VDAsaiAgentLocation);
+class VDAsaiNearingBehavior : public VDAsaiTargetBehavior {
+	GDCLASS(VDAsaiNearingBehavior, VDAsaiTargetBehavior);
 protected:
     static void _bind_methods();
 
-    float zero_linear_speed_threshold = 0.01;
+	StringName radius_param_key;
 
-    float linear_speed_max = 0.0;
-    float linear_acceleration_max = 0.0;
-    Vector3 linear_velocity = Vector3(0.0,0.0,0.0);
-
-    float angular_speed_max = 0.0;
-    float angular_acceleration_max = 0.0;
-    float angular_velocity = 0.0;
-
-    float bounding_radius = 0.0;
-    bool bis_tagged = false;
+	virtual float get_radius(Ref<VDAcContext> context) const;
+	virtual Vector3 _on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta) override;
 public:
-    VDAsaiSteeringAgent();
+	VDAsaiNearingBehavior();
 
-    float get_linear_acceleration_max() const;
-
-    float get_bounding_radius() const;
-    void set_tagged(bool tagged);
-    bool is_tagged() const;
-};
-//////////
-// VDAsaiProximity
-//////////
-class VDAsaiProximity : public Reference {
-    GDCLASS(VDAsaiProximity, Reference);
-protected:
-    static void _bind_methods();
-
-    Ref<VDAsaiSteeringAgent> agent;
-    List<Ref<VDAsaiSteeringAgent>> agents;
-
-    //virtual int _find_neighbors(FuncRef _callback){
-    virtual int _find_neighbors() {
-        return 0;
-    }
-public:
-    VDAsaiProximity();
-};
-//////////
-// VDAsaiInfiniteProximity
-//////////
-class VDAsaiInfiniteProximity : public VDAsaiProximity {
-    GDCLASS(VDAsaiInfiniteProximity, VDAsaiProximity);
-protected:
-    static void _bind_methods();
-
-    virtual int _find_neighbors() override;
-public:
-    VDAsaiInfiniteProximity();
-};
-//////////
-// VDAsaiRadiusProximity
-//////////
-class VDAsaiRadiusProximity : public VDAsaiProximity {
-    GDCLASS(VDAsaiRadiusProximity, VDAsaiProximity);
-protected:
-    static void _bind_methods();
-
-    float radius = 0.0;
-    int last_frame = 0;
-    SceneTree* scene_tree;
-
-    virtual int _find_neighbors() override;
-public:
-    VDAsaiRadiusProximity();
-};
-//////////
-// VDAsaiPath
-//////////
-class VDAsaiPath : public Reference {
-    GDCLASS(VDAsaiPath, Reference);
-protected:
-    static void _bind_methods();
-
-    bool is_open = false;
-    float length = 0.0;
-
-    List<Ref<VDAsaiSegment>> segments;
-    Vector3 nearest_point_on_segment;
-    Vector3 nearest_point_on_path;
-public:
-    VDAsaiPath();
-
-    void init(Array waypoints, bool is_open = false);
-    void create_path(Array waypoints);
-    float calculate_distance(Vector3 agent_current_position);
-    Vector3 calculate_target_position(float target_distance);
-    float calculate_point_segment_distance_squared(Vector3 start, Vector3 end, Vector3 position);
-    Vector3 get_start_point();
-    Vector3 get_end_point();
-};
-//////////
-// VDAsaiSegment
-//////////
-class VDAsaiSegment: public Reference {
-    GDCLASS(VDAsaiSegment, Reference);
-
-    Vector3 begin;
-    Vector3 end;
-    float length;
-    float cumulative_length;
-protected:
-    static void _bind_methods();
-public:
-    VDAsaiSegment();
-
-    void init(Vector3 begin, Vector3 end);
-
-    float get_length() const;
-    void set_cumulative_length(float length);
-    float get_cumulative_length() const;
-
-    Vector3 get_begin() const;
-    Vector3 get_end() const;
+	void set_radius_param_key(StringName param_key);
+	StringName get_radius_param_key() const;
 };
 #endif

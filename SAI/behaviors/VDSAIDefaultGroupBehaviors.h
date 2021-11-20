@@ -3,6 +3,7 @@
 
 #include "../VDSAIState.h"
 
+/*
 class VDAsaiDGBSeparation : public VDAsaiGroupBehaviorState {
     GDCLASS(VDAsaiDGBSeparation, VDAsaiGroupBehaviorState);
 protected:
@@ -16,5 +17,6 @@ protected:
 public:
     VDAsaiDGBSeparation();
 };
+*/
 
 #endif

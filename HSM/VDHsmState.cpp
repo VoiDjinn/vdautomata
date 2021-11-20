@@ -35,13 +35,13 @@ void VDAhsmCompositeState::_bind_methods() {
   ADD_SIGNAL(MethodInfo("transitions_changed"));
 }
 
-bool VDAhsmCompositeState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
+bool VDAhsmCompositeState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) {
   if(bhas_tick) {
-    call("_on_tick", context, structure);
+    call("_on_tick", context, structure, delta);
     Ref<VDAcStateData> data = context->get_state_data(structure->get_automata_path());
     Ref<VDAcStateStructure> child_structure = data->get_current_structure();
     Ref<VDAcState> current_state = child_structure->get_owning_state();
-    return current_state->call("tick", context, child_structure);
+    return current_state->call("tick", context, child_structure, delta);
   }
   return false;
 }
@@ -65,7 +65,7 @@ void VDAhsmCompositeState::enter(Ref<VDAcContext> context, Ref<VDAcStateStructur
   call("_on_enter", context, structure);
 }
 
-void VDAhsmCompositeState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, Variant param, Variant new_value, Variant old_value) {
+void VDAhsmCompositeState::update(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, StringName param, Variant new_value, Variant old_value) {
   call("_on_update", context, structure, param, new_value, old_value);
   Ref<VDAcStateData> data = context->get_state_data(structure->get_automata_path());
   Ref<VDAcStateStructure> current_structure = data->get_current_structure();
@@ -273,7 +273,7 @@ void VDAhsmCompositeState::_on_substate_removed(Ref<VDAcState> substate) {
 }
 
 // TODO: should only update itself or children?
-void VDAhsmCompositeState::_handle_context_param_updated(Variant param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
+void VDAhsmCompositeState::_handle_context_param_updated(StringName param, Variant new_value, Variant old_value, Ref<VDAcContext> context, Ref<VDAcStateStructure> structure) {
   call("update", context, structure, param, new_value, old_value);
   _internal_transition(context, structure);
 }

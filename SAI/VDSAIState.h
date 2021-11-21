@@ -4,24 +4,27 @@
 #include "../core/VDState.h"
 
 //////////
-// VDAsaiSteeringForce
+// VDAsaiKinematic
 //////////
-class VDAsaiSteeringForce : public Resource {
-	GDCLASS(VDAsaiSteeringForce, Resource);
+class VDAsaiKinematic : public Resource {
+	GDCLASS(VDAsaiKinematic, Resource);
 protected:
     static void _bind_methods();
 
-	Vector3 velocity;
-	float max_velocity;
-	Vector3 position;
-	float mass;
+	Vector3 velocity = Vector3(0, 0, 0);
+	float orientation = 0.0;
+	float max_speed = 1.0;
+	Vector3 position = Vector3(0, 0, 0);
+	float mass = 1.0;
 public:
-	VDAsaiSteeringForce();
+	VDAsaiKinematic();
 
 	void set_velocity(Vector3 velocity);
 	Vector3 get_velocity() const;
-	void set_max_velocity(float max_velocity);
-	float get_max_velocity() const;
+	void set_orientation(float orientation);
+	float get_orientation() const;
+	void set_max_speed(float max_speed);
+	float get_max_speed() const;
 	void set_position(Vector3 position);
 	Vector3 get_position() const;
 	void set_mass(float mass);
@@ -32,30 +35,33 @@ public:
 //////////
 class VDAsaiState : public VDAcState {
 	GDCLASS(VDAsaiState, VDAcState);
+// common functions
 protected:
-    static void _bind_methods();
+	static const Vector3 ZERO_VELOCITY;
 
-	//Variant steering_force_param_key;
-	StringName steering_force_param_key;
-
-	virtual Ref<VDAsaiSteeringForce> get_steering_force(Ref<VDAcContext> context);
-	virtual Vector3 _on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta);
-	virtual void _apply_velocity(Vector3 new_velocity, Vector3 old_velocity, Ref<VDAcContext> context, float delta);
-
-	Vector3 truncate(Vector3 vector, float max) {
+	static Vector3 truncate(Vector3 vector, float max) {
 		float scale = max / vector.length();
 		scale = MIN(scale, 1.0);
 		return vector * scale;
 	}
+protected:
+    static void _bind_methods();
+
+	StringName kinematic_param_key;
+
+	virtual Ref<VDAsaiKinematic> get_kinematic(Ref<VDAcContext> context);
+	virtual Vector3 _on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta);
+	virtual void _apply_velocity(Vector3 new_velocity, Vector3 old_velocity, Ref<VDAcContext> context, float delta);
+
 public:
 	VDAsaiState();
 
 	virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) override;
-	void set_steering_force_param_key(StringName param_key);
-	StringName get_steering_force_param_key() const;
+	void set_kinematic_param_key(StringName param_key);
+	StringName get_kinematic_param_key() const;
 };
 //////////
-// VDAsaiCombinedBehavior
+// VDAsaiCombinedBehavior / MoveManager
 //////////
 class VDAsaiCombinedBehavior : public VDAsaiState {
 	GDCLASS(VDAsaiCombinedBehavior, VDAsaiState);
@@ -72,51 +78,5 @@ public:
 	void set_behaviors_open(Array new_behaviors);
 	Vector<Ref<VDAsaiState>> get_behaviors() const;
 	Array get_behaviors_open() const;
-};
-//////////
-// VDAsaiTargetBehavior
-//////////
-class VDAsaiTargetBehavior : public VDAsaiState {
-	GDCLASS(VDAsaiTargetBehavior, VDAsaiState);
-public:
-	enum DirectionType {
-		TOWARDS,
-		AWAY
-	};
-protected:
-    static void _bind_methods();
-
-	StringName target_position_param_key;
-	DirectionType direction_type;
-
-	virtual Vector3 get_target_position(Ref<VDAcContext> context) const;
-	virtual Vector3 _on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta) override;
-public:
-	VDAsaiTargetBehavior();
-
-	void set_target_position_param_key(StringName param_key);
-	StringName get_target_position_param_key() const;
-	void set_direction_type(DirectionType type);
-	DirectionType get_direction_type() const;
-};
-
-VARIANT_ENUM_CAST(VDAsaiTargetBehavior::DirectionType);
-//////////
-// VDAsaiNearingBehavior
-//////////
-class VDAsaiNearingBehavior : public VDAsaiTargetBehavior {
-	GDCLASS(VDAsaiNearingBehavior, VDAsaiTargetBehavior);
-protected:
-    static void _bind_methods();
-
-	StringName radius_param_key;
-
-	virtual float get_radius(Ref<VDAcContext> context) const;
-	virtual Vector3 _on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta) override;
-public:
-	VDAsaiNearingBehavior();
-
-	void set_radius_param_key(StringName param_key);
-	StringName get_radius_param_key() const;
 };
 #endif

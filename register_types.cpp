@@ -18,6 +18,7 @@
 #include "./GOAP/VDPlannerState.h"
 
 #include "./SAI/VDSAIState.h"
+#include "./SAI/behaviors/VDSAITargetBehaviors.h"
 /*
 #include "./SAI/behaviors/VDSAIDefaultBehaviors.h"
 #include "./SAI/behaviors/VDSAIDefaultGroupBehaviors.h"
@@ -51,7 +52,7 @@ void register_vdautomata_types() {
 
   //ClassDB::register_class<VDAgpState>();
 
-  ClassDB::register_class<VDAsaiSteeringForce>();
+  ClassDB::register_class<VDAsaiKinematic>();
   ClassDB::register_class<VDAsaiState>();
   ClassDB::register_class<VDAsaiCombinedBehavior>();
   ClassDB::register_class<VDAsaiTargetBehavior>();

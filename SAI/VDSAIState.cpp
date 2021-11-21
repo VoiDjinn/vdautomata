@@ -1,113 +1,123 @@
 #include "VDSAIState.h"
 
 //////////
-// VDAsaiSteeringForce
+// VDAsaiKinematic
 //////////
-VDAsaiSteeringForce::VDAsaiSteeringForce() {}
+VDAsaiKinematic::VDAsaiKinematic() {}
 
-void VDAsaiSteeringForce::_bind_methods() {
-  ClassDB::bind_method(D_METHOD("set_velocity", "velocity"), &VDAsaiSteeringForce::set_velocity);
-  ClassDB::bind_method(D_METHOD("get_velocity"), &VDAsaiSteeringForce::get_velocity);
-  ClassDB::bind_method(D_METHOD("set_max_velocity", "max_velocity"), &VDAsaiSteeringForce::set_max_velocity);
-  ClassDB::bind_method(D_METHOD("get_max_velocity"), &VDAsaiSteeringForce::get_max_velocity);
-  ClassDB::bind_method(D_METHOD("set_position", "position"), &VDAsaiSteeringForce::set_position);
-  ClassDB::bind_method(D_METHOD("get_position"), &VDAsaiSteeringForce::get_position);
-  ClassDB::bind_method(D_METHOD("set_mass", "mass"), &VDAsaiSteeringForce::set_mass);
-  ClassDB::bind_method(D_METHOD("get_mass"), &VDAsaiSteeringForce::get_mass);
+void VDAsaiKinematic::_bind_methods() {
+  ClassDB::bind_method(D_METHOD("set_velocity", "velocity"), &VDAsaiKinematic::set_velocity);
+  ClassDB::bind_method(D_METHOD("get_velocity"), &VDAsaiKinematic::get_velocity);
+  ClassDB::bind_method(D_METHOD("set_orientation", "orientation"), &VDAsaiKinematic::set_orientation);
+  ClassDB::bind_method(D_METHOD("get_orientation"), &VDAsaiKinematic::get_orientation);
+  ClassDB::bind_method(D_METHOD("set_max_speed", "max_speed"), &VDAsaiKinematic::set_max_speed);
+  ClassDB::bind_method(D_METHOD("get_max_speed"), &VDAsaiKinematic::get_max_speed);
+  ClassDB::bind_method(D_METHOD("set_position", "position"), &VDAsaiKinematic::set_position);
+  ClassDB::bind_method(D_METHOD("get_position"), &VDAsaiKinematic::get_position);
+  ClassDB::bind_method(D_METHOD("set_mass", "mass"), &VDAsaiKinematic::set_mass);
+  ClassDB::bind_method(D_METHOD("get_mass"), &VDAsaiKinematic::get_mass);
 
   ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "velocity"), "set_velocity", "get_velocity");
-  ADD_PROPERTY(PropertyInfo(Variant::REAL, "max_velocity"), "set_max_velocity", "get_max_velocity");
+  ADD_PROPERTY(PropertyInfo(Variant::REAL, "orientation"), "set_orientation", "get_orientation");
+  ADD_PROPERTY(PropertyInfo(Variant::REAL, "max_speed"), "set_max_speed", "get_max_speed");
   ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "position"), "set_position", "get_position");
   ADD_PROPERTY(PropertyInfo(Variant::REAL, "mass"), "set_mass", "get_mass");
 }
 
-void VDAsaiSteeringForce::set_velocity(Vector3 velocity) {
+void VDAsaiKinematic::set_velocity(Vector3 velocity) {
   this->velocity = velocity;
 }
 
-Vector3 VDAsaiSteeringForce::get_velocity() const {
+Vector3 VDAsaiKinematic::get_velocity() const {
   return velocity;
 }
 
-void VDAsaiSteeringForce::set_max_velocity(float max_velocity) {
-  this->max_velocity = max_velocity;
+void VDAsaiKinematic::set_orientation(float orientation) {
+  this->orientation = orientation;
+}
+float VDAsaiKinematic::get_orientation() const {
+  return orientation;
 }
 
-float VDAsaiSteeringForce::get_max_velocity() const {
-  return max_velocity;
+void VDAsaiKinematic::set_max_speed(float max_speed) {
+  this->max_speed = max_speed;
 }
 
-void VDAsaiSteeringForce::set_position(Vector3 position) {
+float VDAsaiKinematic::get_max_speed() const {
+  return max_speed;
+}
+
+void VDAsaiKinematic::set_position(Vector3 position) {
   this->position = position;
 }
 
-Vector3 VDAsaiSteeringForce::get_position() const {
+Vector3 VDAsaiKinematic::get_position() const {
   return position;
 }
 
-void VDAsaiSteeringForce::set_mass(float mass) {
+void VDAsaiKinematic::set_mass(float mass) {
   this->mass = mass;
 }
 
-float VDAsaiSteeringForce::get_mass() const {
+float VDAsaiKinematic::get_mass() const {
   return mass;
 }
 //////////
 // VDAsaiState
 //////////
+const Vector3 VDAsaiState::ZERO_VELOCITY = Vector3(0, 0, 0);
+
 VDAsaiState::VDAsaiState() {}
 
 void VDAsaiState::_bind_methods() {
-  ClassDB::bind_method(D_METHOD("get_steering_force", "context"), &VDAsaiState::get_steering_force);
+  ClassDB::bind_method(D_METHOD("get_kinematic", "context"), &VDAsaiState::get_kinematic);
   ClassDB::bind_method(D_METHOD("_on_calculation", "steering_force", "context", "delta"), &VDAsaiState::_on_calculation);
   ClassDB::bind_method(D_METHOD("_apply_velocity", "new_velocity", "context", "delta"), &VDAsaiState::_apply_velocity);
 
-  ClassDB::bind_method(D_METHOD("set_steering_force_param_key", "param_key"), &VDAsaiState::set_steering_force_param_key);
-  ClassDB::bind_method(D_METHOD("get_steering_force_param_key"), &VDAsaiState::get_steering_force_param_key);
+  ClassDB::bind_method(D_METHOD("set_kinematic_param_key", "param_key"), &VDAsaiState::set_kinematic_param_key);
+  ClassDB::bind_method(D_METHOD("get_kinematic_param_key"), &VDAsaiState::get_kinematic_param_key);
 
-  BIND_VMETHOD(MethodInfo("get_steering_force", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext")));
+  BIND_VMETHOD(MethodInfo("get_kinematic", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext")));
   BIND_VMETHOD(MethodInfo("_on_calculation", PropertyInfo(Variant::OBJECT, "steering_force", PROPERTY_HINT_RESOURCE_TYPE, "VDAsaiSteeringForce"), PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::REAL, "delta")));
   BIND_VMETHOD(MethodInfo("_apply_velocity", PropertyInfo(Variant::VECTOR3, "new_velocity"), PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::REAL, "delta")));
 
-  ADD_PROPERTY(PropertyInfo(Variant::STRING, "steering_force_param_key"), "set_steering_force_param_key", "get_steering_force_param_key");
+  ADD_PROPERTY(PropertyInfo(Variant::STRING, "kinematic_param_key"), "set_kinematic_param_key", "get_kinematic_param_key");
 }
 
-Ref<VDAsaiSteeringForce> VDAsaiState::get_steering_force(Ref<VDAcContext> context) {
-  Ref<VDAsaiSteeringForce> steering_force;
-  if(context->has_context_param(steering_force_param_key)) {
-    steering_force = context->get_context_value(steering_force_param_key);
+Ref<VDAsaiKinematic> VDAsaiState::get_kinematic(Ref<VDAcContext> context) {
+  Ref<VDAsaiKinematic> kinematic;
+  if(context->has_context_param(kinematic_param_key)) {
+    kinematic = context->get_context_value(kinematic_param_key);
   }
-  return steering_force;
+  return kinematic;
 }
 
-Vector3 VDAsaiState::_on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta) {
-  return Vector3(0, 0, 0);
+Vector3 VDAsaiState::_on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) {
+  kinematic->set_velocity(ZERO_VELOCITY);
+  kinematic->set_orientation(0);
+  return ZERO_VELOCITY;
 }
 
 void VDAsaiState::_apply_velocity(Vector3 new_velocity, Vector3 old_velocity, Ref<VDAcContext> context, float delta) {}
 
 bool VDAsaiState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) {
-  Ref<VDAsaiSteeringForce> steering_force = call("get_steering_force", context);
-  if(steering_force.is_valid()) {
-    Vector3 old_velocity = steering_force->get_velocity();
-    Vector3 steering = call("_on_calculation", steering_force, context, delta);
-    steering = truncate(steering, steering_force->get_max_velocity());
-    steering = steering / steering_force->get_mass();
-    Vector3 new_velocity = truncate(steering_force->get_velocity() + steering, steering_force->get_max_velocity());
-    steering_force->set_velocity(new_velocity);
-
-    call("_apply_velocity", new_velocity, old_velocity, context, delta);
+  Ref<VDAsaiKinematic> kinematic = call("get_kinematic", context);
+  if(kinematic.is_valid()) {
+    Vector3 old_velocity = kinematic->get_velocity();
+    Vector3 steering = call("_on_calculation", kinematic, context, delta);
+    kinematic->set_velocity(steering);
+    call("_apply_velocity", steering, old_velocity, context, delta);
     return true;
   }
   return false;
 }
 
-void VDAsaiState::set_steering_force_param_key(StringName param_key) {
-  this->steering_force_param_key = param_key;
+void VDAsaiState::set_kinematic_param_key(StringName param_key) {
+  this->kinematic_param_key = param_key;
 }
 
-StringName VDAsaiState::get_steering_force_param_key() const {
-  return steering_force_param_key;
+StringName VDAsaiState::get_kinematic_param_key() const {
+  return kinematic_param_key;
 }
 //////////
 // VDAsaiCombinedBehavior
@@ -122,20 +132,17 @@ void VDAsaiCombinedBehavior::_bind_methods() {
 }
 
 bool VDAsaiCombinedBehavior::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) {
-  Ref<VDAsaiSteeringForce> steering_force = call("get_steering_force", context);
-  if(steering_force.is_valid()) {
-    Vector3 old_velocity = steering_force->get_velocity();
-    Vector3 steering = Vector3(0, 0, 0);
+  Ref<VDAsaiKinematic> kinematic = call("get_kinematic", context);
+  if(kinematic.is_valid()) {
+    Vector3 old_velocity = kinematic->get_velocity();
+    Vector3 steering = VDAsaiState::ZERO_VELOCITY;
     for(int i = 0; i < behaviors.size(); i++) {
       Ref<VDAsaiState> behavior = behaviors[i];
-      Vector3 behavior_steering = behavior->call("_on_calculation", steering_force, context, delta);
+      Vector3 behavior_steering = behavior->call("_on_calculation", kinematic, context, delta);
       steering = steering + behavior_steering;
     }
-    steering = truncate(steering, steering_force->get_max_velocity());
-    steering = steering / steering_force->get_mass();
-    Vector3 new_velocity = truncate(steering_force->get_velocity() + steering, steering_force->get_max_velocity());
-    steering_force->set_velocity(new_velocity);
-    call("_apply_velocity", new_velocity, old_velocity, context, delta);
+    kinematic->set_velocity(steering);
+    call("_apply_velocity", steering, old_velocity, context, delta);
     return true;
   }
   return false;
@@ -191,104 +198,4 @@ Array VDAsaiCombinedBehavior::get_behaviors_open() const {
     open_behavior.push_back(behavior);
   }
   return open_behavior;
-}
-//////////
-// VDAsaiTargetBehavior
-//////////
-VDAsaiTargetBehavior::VDAsaiTargetBehavior() {}
-
-void VDAsaiTargetBehavior::_bind_methods() {
-  ClassDB::bind_method(D_METHOD("get_target_position", "context"), &VDAsaiTargetBehavior::get_target_position);
-  ClassDB::bind_method(D_METHOD("set_target_position_param_key", "param_key"), &VDAsaiTargetBehavior::set_target_position_param_key);
-  ClassDB::bind_method(D_METHOD("get_target_position_param_key"), &VDAsaiTargetBehavior::get_target_position_param_key);
-  ClassDB::bind_method(D_METHOD("set_direction_type", "type"), &VDAsaiTargetBehavior::set_direction_type);
-  ClassDB::bind_method(D_METHOD("get_direction_type"), &VDAsaiTargetBehavior::get_direction_type);
-
-  BIND_VMETHOD(MethodInfo("get_target_position", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext")));
-
-  BIND_ENUM_CONSTANT(TOWARDS);
-  BIND_ENUM_CONSTANT(AWAY);
-
-  ADD_PROPERTY(PropertyInfo(Variant::STRING, "target_position_param_key"), "set_target_position_param_key", "get_target_position_param_key");
-  ADD_PROPERTY(PropertyInfo(Variant::INT, "direction_type", PROPERTY_HINT_ENUM, "TOWARDS,AWAY"), "set_direction_type", "get_direction_type");
-}
-
-Vector3 VDAsaiTargetBehavior::_on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta) {
-  Vector3 target = call("get_target_position", context);
-  Vector3 desired = target - steering_force->get_position();
-  desired.normalize();
-  desired *= steering_force->get_max_velocity();
-  Vector3 steering = desired - steering_force->get_velocity();
-  if(direction_type == AWAY) steering *= -1;
-  return steering;
-}
-
-Vector3 VDAsaiTargetBehavior::get_target_position(Ref<VDAcContext> context) const {
-  Vector3 target_position = Vector3(0, 0, 0);
-  if(context->has_context_param(target_position_param_key)) {
-    return context->get_context_value(target_position_param_key);
-  }
-  return target_position;
-}
-
-void VDAsaiTargetBehavior::set_direction_type(VDAsaiTargetBehavior::DirectionType type) {
-  direction_type = type;
-}
-
-VDAsaiTargetBehavior::DirectionType VDAsaiTargetBehavior::get_direction_type() const {
-  return direction_type;
-}
-
-void VDAsaiTargetBehavior::set_target_position_param_key(StringName param_key) {
-  target_position_param_key = param_key;
-}
-
-StringName VDAsaiTargetBehavior::get_target_position_param_key() const {
-  return target_position_param_key;
-}
-//////////
-// VDAsaiNearingBehavior
-//////////
-VDAsaiNearingBehavior::VDAsaiNearingBehavior() {}
-
-void VDAsaiNearingBehavior::_bind_methods() {
-  ClassDB::bind_method(D_METHOD("get_radius", "context"), &VDAsaiNearingBehavior::get_radius);
-  ClassDB::bind_method(D_METHOD("set_radius_param_key", "param_key"), &VDAsaiNearingBehavior::set_radius_param_key);
-  ClassDB::bind_method(D_METHOD("get_radius_param_key"), &VDAsaiNearingBehavior::get_radius_param_key);
-
-  BIND_VMETHOD(MethodInfo("get_radius", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext")));
-
-  ADD_PROPERTY(PropertyInfo(Variant::STRING, "radius_param_key"), "set_radius_param_key", "get_radius_param_key");
-}
-
-Vector3 VDAsaiNearingBehavior::_on_calculation(Ref<VDAsaiSteeringForce> steering_force, Ref<VDAcContext> context, float delta) {
-  Vector3 steering = Vector3(0, 0, 0);
-  Vector3 target_position = call("get_target_position", context);
-  float slowing_radius = call("get_radius", context);
-  Vector3 desired = target_position - steering_force->get_position();
-  float distance = desired.length();
-  if(distance < slowing_radius) {
-    desired = desired.normalized() * steering_force->get_max_velocity() * (distance / slowing_radius);
-  } else {
-    desired = desired.normalized() * steering_force->get_max_velocity();
-  }
-  steering = desired - steering_force->get_velocity();
-  if(direction_type == AWAY) steering *= -1;
-  return steering;
-}
-
-float VDAsaiNearingBehavior::get_radius(Ref<VDAcContext> context) const {
-  float radius = 1.0;
-  if(context->has_context_param(radius_param_key)) {
-    return context->get_context_value(radius_param_key);
-  }
-  return radius;
-}
-
-void VDAsaiNearingBehavior::set_radius_param_key(StringName param_key) {
-  radius_param_key = param_key;
-}
-
-StringName VDAsaiNearingBehavior::get_radius_param_key() const {
-  return radius_param_key;
 }

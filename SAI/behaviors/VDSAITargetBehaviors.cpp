@@ -21,13 +21,15 @@ void VDAsaiTargetBehavior::_bind_methods() {
   ADD_PROPERTY(PropertyInfo(Variant::INT, "direction_type", PROPERTY_HINT_ENUM, "TOWARDS,AWAY"), "set_direction_type", "get_direction_type");
 }
 
-Vector3 VDAsaiTargetBehavior::_on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) {
+Ref<VDAsaiSteeringResults> VDAsaiTargetBehavior::_on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) {
+  Ref<VDAsaiSteeringResults> results = Ref<VDAsaiSteeringResults>(memnew(VDAsaiSteeringResults()));
   Vector3 target_position = call("get_target_position", context);
-  Vector3 desired_velocity = (target_position - kinematic->get_position()).normalized() * kinematic->get_max_speed();
+  Vector3 desired_velocity = kinematic->get_position().direction_to(target_position) * kinematic->get_max_speed();
   if(direction_type == AWAY) desired_velocity *= -1;
   Vector3 velocity = kinematic->get_velocity();
   Vector3 steering = (desired_velocity - velocity) / kinematic->get_mass();
-  return velocity + steering;
+  results->set_velocity(steering);
+  return results;
 }
 
 Vector3 VDAsaiTargetBehavior::get_target_position(Ref<VDAcContext> context) const {
@@ -52,6 +54,23 @@ void VDAsaiTargetBehavior::set_target_position_param_key(StringName param_key) {
 
 StringName VDAsaiTargetBehavior::get_target_position_param_key() const {
   return target_position_param_key;
+}
+//////////
+// VDAsaiFacingBehavior
+//////////
+const Vector3 VDAsaiFacingBehavior::ZERO_FACING = Vector3(1, 0, 0);
+const Vector3 VDAsaiFacingBehavior::UP_AXIS = Vector3(0, 1, 0);
+
+VDAsaiFacingBehavior::VDAsaiFacingBehavior() {}
+
+Ref<VDAsaiSteeringResults> VDAsaiFacingBehavior::_on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) {
+  Ref<VDAsaiSteeringResults> results = Ref<VDAsaiSteeringResults>(memnew(VDAsaiSteeringResults()));
+  Vector3 target_position = call("get_target_position", context);
+  Vector3 direction = kinematic->get_position().direction_to(target_position);
+  Vector3 current_orientation = ZERO_FACING.rotated(UP_AXIS, kinematic->get_orientation());
+  float angle = current_orientation.angle_to(direction);
+  results->set_orientation(angle);
+  return results;
 }
 //////////
 // VDAsaiNearingBehavior
@@ -81,31 +100,32 @@ void VDAsaiNearingBehavior::_bind_methods() {
   ADD_PROPERTY(PropertyInfo(Variant::STRING, "nearing_damping_param_key"), "set_nearing_damping_param_key", "get_nearing_damping_param_key");
 }
 
-// TODO: move out of target radius (AWAY)
-// TODO: nearing_tolerance, for stopping before reaching target (TOWARDS)
-Vector3 VDAsaiNearingBehavior::_on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) {
-  Vector3 steering = ZERO_VELOCITY;
+// TODO: include mass in calculcations
+Ref<VDAsaiSteeringResults> VDAsaiNearingBehavior::_on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) {
+  Ref<VDAsaiSteeringResults> results = Ref<VDAsaiSteeringResults>(memnew(VDAsaiSteeringResults()));
+  float desired_speed = 0;
   Vector3 target_position = call("get_target_position", context);
   Vector3 current_position = kinematic->get_position();
   float distance = current_position.distance_to(target_position);
-  Vector3 desired_velocity = (target_position - kinematic->get_position()).normalized() * kinematic->get_max_speed();
-  if(direction_type == AWAY) desired_velocity *= -1;
-  /*
   float nearing_tolerance = call("get_nearing_tolerance", context);
-  if(distance <= nearing_tolerance && direction_type == TOWARDS) {
-    kinematic->set_velocity(ZERO_VELOCITY);
-    return ZERO_VELOCITY;
+  bool is_towards = direction_type == TOWARDS;
+  if(is_towards ? distance <= nearing_tolerance : distance >= nearing_tolerance) {
+    return results;
   } else {
-  */
-  float target_radius = call("get_target_radius", context);
-  if(distance <= target_radius) {
-    float damped_distance = call("_damp_nearing_distance", (distance / target_radius), context, delta);
-    desired_velocity *= damped_distance;
+    desired_speed = kinematic->get_max_speed();
+    float target_radius = call("get_target_radius", context);
+    if(is_towards ? distance < target_radius : distance > target_radius) {
+      float distance_ratio = is_towards ? (distance - nearing_tolerance) / (target_radius - nearing_tolerance) : (nearing_tolerance - distance) / (nearing_tolerance - target_radius);
+      float damped_distance = call("_damp_nearing_distance", distance_ratio, context, delta);
+      desired_speed *= damped_distance;
+    }
   }
-  //}
+  Vector3 direction = current_position.direction_to(target_position);
+  if(!is_towards) direction *= -1;
+  Vector3 desired_velocity = direction * desired_speed;
   Vector3 velocity = kinematic->get_velocity();
-  steering = (desired_velocity - velocity) / kinematic->get_mass();
-  return velocity + steering;
+  results->set_velocity((desired_velocity - velocity) / kinematic->get_mass());
+  return results;
 }
 
 float VDAsaiNearingBehavior::_damp_nearing_distance(float nearing_distance, Ref<VDAcContext> context, float delta) {
@@ -122,7 +142,7 @@ float VDAsaiNearingBehavior::get_target_radius(Ref<VDAcContext> context) const {
 }
 
 float VDAsaiNearingBehavior::get_nearing_tolerance(Ref<VDAcContext> context) const {
-  float tolerance = 1.0;
+  float tolerance = 0.0;
   if(context->has_context_param(nearing_tolerance_param_key)) {
     return context->get_context_value(nearing_tolerance_param_key);
   }

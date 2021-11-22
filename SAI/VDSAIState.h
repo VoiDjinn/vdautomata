@@ -31,6 +31,24 @@ public:
 	float get_mass() const;
 };
 //////////
+// VDAsaiSteeringResults
+//////////
+class VDAsaiSteeringResults : public Reference {
+	GDCLASS(VDAsaiSteeringResults, Reference);
+protected:
+    static void _bind_methods();
+
+	Vector3 velocity = Vector3(0, 0, 0);
+	float orientation = 0.0;
+public:
+	VDAsaiSteeringResults();
+
+	void set_velocity(Vector3 velocity);
+	Vector3 get_velocity() const;
+	void set_orientation(float orientation);
+	float get_orientation() const;
+};
+//////////
 // VDAsaiState
 //////////
 class VDAsaiState : public VDAcState {
@@ -50,8 +68,8 @@ protected:
 	StringName kinematic_param_key;
 
 	virtual Ref<VDAsaiKinematic> get_kinematic(Ref<VDAcContext> context);
-	virtual Vector3 _on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta);
-	virtual void _apply_velocity(Vector3 new_velocity, Vector3 old_velocity, Ref<VDAcContext> context, float delta);
+	virtual Ref<VDAsaiSteeringResults> _on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta);
+	virtual void _apply_steering(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta);
 
 public:
 	VDAsaiState();

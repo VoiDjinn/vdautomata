@@ -53,9 +53,11 @@ void register_vdautomata_types() {
   //ClassDB::register_class<VDAgpState>();
 
   ClassDB::register_class<VDAsaiKinematic>();
+  ClassDB::register_class<VDAsaiSteeringResults>();
   ClassDB::register_class<VDAsaiState>();
   ClassDB::register_class<VDAsaiCombinedBehavior>();
   ClassDB::register_class<VDAsaiTargetBehavior>();
+  ClassDB::register_class<VDAsaiFacingBehavior>();
   ClassDB::register_class<VDAsaiNearingBehavior>();
   /*
   ClassDB::register_class<VDAsaiBehaviorState>();

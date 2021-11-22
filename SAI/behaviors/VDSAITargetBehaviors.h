@@ -20,7 +20,7 @@ protected:
 	DirectionType direction_type;
 
 	virtual Vector3 get_target_position(Ref<VDAcContext> context) const;
-	virtual Vector3 _on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) override;
+	virtual Ref<VDAsaiSteeringResults> _on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) override;
 public:
 	VDAsaiTargetBehavior();
 
@@ -34,7 +34,16 @@ VARIANT_ENUM_CAST(VDAsaiTargetBehavior::DirectionType);
 //////////
 // VDAsaiFacingBehavior
 //////////
+class VDAsaiFacingBehavior : public VDAsaiTargetBehavior {
+	GDCLASS(VDAsaiFacingBehavior, VDAsaiTargetBehavior);
+protected:
+	static const Vector3 ZERO_FACING;
+	static const Vector3 UP_AXIS;
 
+	virtual Ref<VDAsaiSteeringResults> _on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) override;
+public:
+	VDAsaiFacingBehavior();
+};
 //////////
 // VDAsaiNearingBehavior / Arrive/Departure
 //////////
@@ -50,7 +59,7 @@ protected:
 	virtual float get_target_radius(Ref<VDAcContext> context) const;
 	virtual float get_nearing_tolerance(Ref<VDAcContext> context) const;
 	virtual float get_nearing_damping(Ref<VDAcContext> context) const;
-	virtual Vector3 _on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) override;
+	virtual Ref<VDAsaiSteeringResults> _on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) override;
 	virtual float _damp_nearing_distance(float nearing_distance, Ref<VDAcContext> context, float delta);
 public:
 	VDAsaiNearingBehavior();

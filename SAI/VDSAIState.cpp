@@ -63,6 +63,36 @@ float VDAsaiKinematic::get_mass() const {
   return mass;
 }
 //////////
+// VDAsaiSteeringResults
+//////////
+VDAsaiSteeringResults::VDAsaiSteeringResults() {}
+
+void VDAsaiSteeringResults::_bind_methods() {
+  ClassDB::bind_method(D_METHOD("set_velocity", "velocity"), &VDAsaiSteeringResults::set_velocity);
+  ClassDB::bind_method(D_METHOD("get_velocity"), &VDAsaiSteeringResults::get_velocity);
+  ClassDB::bind_method(D_METHOD("set_orientation", "orientation"), &VDAsaiSteeringResults::set_orientation);
+  ClassDB::bind_method(D_METHOD("get_orientation"), &VDAsaiSteeringResults::get_orientation);
+
+  ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "velocity"), "set_velocity", "get_velocity");
+  ADD_PROPERTY(PropertyInfo(Variant::REAL, "orientation"), "set_orientation", "get_orientation");
+}
+
+void VDAsaiSteeringResults::set_velocity(Vector3 velocity) {
+  this->velocity = velocity;
+}
+
+Vector3 VDAsaiSteeringResults::get_velocity() const {
+  return velocity;
+}
+
+void VDAsaiSteeringResults::set_orientation(float orientation) {
+  this->orientation = orientation;
+}
+
+float VDAsaiSteeringResults::get_orientation() const {
+  return orientation;
+}
+//////////
 // VDAsaiState
 //////////
 const Vector3 VDAsaiState::ZERO_VELOCITY = Vector3(0, 0, 0);
@@ -71,15 +101,15 @@ VDAsaiState::VDAsaiState() {}
 
 void VDAsaiState::_bind_methods() {
   ClassDB::bind_method(D_METHOD("get_kinematic", "context"), &VDAsaiState::get_kinematic);
-  ClassDB::bind_method(D_METHOD("_on_calculation", "steering_force", "context", "delta"), &VDAsaiState::_on_calculation);
-  ClassDB::bind_method(D_METHOD("_apply_velocity", "new_velocity", "context", "delta"), &VDAsaiState::_apply_velocity);
+  ClassDB::bind_method(D_METHOD("_on_calculation", "kinematic", "context", "delta"), &VDAsaiState::_on_calculation);
+  ClassDB::bind_method(D_METHOD("_apply_velocity", "kinematic", "context", "delta"), &VDAsaiState::_apply_steering);
 
   ClassDB::bind_method(D_METHOD("set_kinematic_param_key", "param_key"), &VDAsaiState::set_kinematic_param_key);
   ClassDB::bind_method(D_METHOD("get_kinematic_param_key"), &VDAsaiState::get_kinematic_param_key);
 
   BIND_VMETHOD(MethodInfo("get_kinematic", PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext")));
-  BIND_VMETHOD(MethodInfo("_on_calculation", PropertyInfo(Variant::OBJECT, "steering_force", PROPERTY_HINT_RESOURCE_TYPE, "VDAsaiSteeringForce"), PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::REAL, "delta")));
-  BIND_VMETHOD(MethodInfo("_apply_velocity", PropertyInfo(Variant::VECTOR3, "new_velocity"), PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::REAL, "delta")));
+  BIND_VMETHOD(MethodInfo("_on_calculation", PropertyInfo(Variant::OBJECT, "kinematic", PROPERTY_HINT_RESOURCE_TYPE, "VDAsaiKinematic"), PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::REAL, "delta")));
+  BIND_VMETHOD(MethodInfo("_apply_steering", PropertyInfo(Variant::OBJECT, "kinematic", PROPERTY_HINT_RESOURCE_TYPE, "VDAsaiKinematic"), PropertyInfo(Variant::OBJECT, "context", PROPERTY_HINT_RESOURCE_TYPE, "VDAcContext"), PropertyInfo(Variant::REAL, "delta")));
 
   ADD_PROPERTY(PropertyInfo(Variant::STRING, "kinematic_param_key"), "set_kinematic_param_key", "get_kinematic_param_key");
 }
@@ -92,21 +122,24 @@ Ref<VDAsaiKinematic> VDAsaiState::get_kinematic(Ref<VDAcContext> context) {
   return kinematic;
 }
 
-Vector3 VDAsaiState::_on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) {
-  kinematic->set_velocity(ZERO_VELOCITY);
-  kinematic->set_orientation(0);
-  return ZERO_VELOCITY;
+Ref<VDAsaiSteeringResults> VDAsaiState::_on_calculation(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) {
+  Ref<VDAsaiSteeringResults> results = Ref<VDAsaiSteeringResults>(memnew(VDAsaiSteeringResults()));
+  results->set_velocity(ZERO_VELOCITY);
+  results->set_orientation(0);
+  return results;
 }
 
-void VDAsaiState::_apply_velocity(Vector3 new_velocity, Vector3 old_velocity, Ref<VDAcContext> context, float delta) {}
+void VDAsaiState::_apply_steering(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta) {}
 
 bool VDAsaiState::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) {
   Ref<VDAsaiKinematic> kinematic = call("get_kinematic", context);
   if(kinematic.is_valid()) {
-    Vector3 old_velocity = kinematic->get_velocity();
-    Vector3 steering = call("_on_calculation", kinematic, context, delta);
-    kinematic->set_velocity(steering);
-    call("_apply_velocity", steering, old_velocity, context, delta);
+    Ref<VDAsaiSteeringResults> results = call("_on_calculation", kinematic, context, delta);
+    Vector3 new_velocity = kinematic->get_velocity() + results->get_velocity();
+    float new_orientation = kinematic->get_orientation() + results->get_orientation();
+    kinematic->set_velocity(new_velocity);
+    kinematic->set_orientation(new_orientation);
+    call("_apply_velocity", kinematic, context, delta);
     return true;
   }
   return false;
@@ -134,15 +167,18 @@ void VDAsaiCombinedBehavior::_bind_methods() {
 bool VDAsaiCombinedBehavior::tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) {
   Ref<VDAsaiKinematic> kinematic = call("get_kinematic", context);
   if(kinematic.is_valid()) {
-    Vector3 old_velocity = kinematic->get_velocity();
-    Vector3 steering = VDAsaiState::ZERO_VELOCITY;
+    Vector3 velocity = kinematic->get_velocity();
+    float orientation = kinematic->get_orientation();
     for(int i = 0; i < behaviors.size(); i++) {
       Ref<VDAsaiState> behavior = behaviors[i];
-      Vector3 behavior_steering = behavior->call("_on_calculation", kinematic, context, delta);
-      steering = steering + behavior_steering;
+      Ref<VDAsaiSteeringResults> results = behavior->call("_on_calculation", kinematic, context, delta);
+      velocity += results->get_velocity();
+      orientation += results->get_orientation();
     }
-    kinematic->set_velocity(steering);
-    call("_apply_velocity", steering, old_velocity, context, delta);
+    // TODO: truncate and / mass
+    kinematic->set_velocity(velocity);
+    kinematic->set_orientation(orientation);
+    call("_apply_steering", kinematic, context, delta);
     return true;
   }
   return false;

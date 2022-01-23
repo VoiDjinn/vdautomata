@@ -18,8 +18,12 @@
 #include "./GOAP/VDPlannerState.h"
 
 #include "./SAI/VDSAIState.h"
-#include "./SAI/behaviors/VDSAITargetBehaviors.h"
+#include "./SAI/behaviors/SeekFlee.h"
+#include "./SAI/behaviors/PursueEvade.h"
+#include "./SAI/behaviors/ArriveLeave.h"
+#include "./SAI/behaviors/AlignFace.h"
 /*
+#include "./SAI/behaviors/VDSAITargetBehaviors.h"
 #include "./SAI/behaviors/VDSAIDefaultBehaviors.h"
 #include "./SAI/behaviors/VDSAIDefaultGroupBehaviors.h"
 */
@@ -55,10 +59,15 @@ void register_vdautomata_types() {
   ClassDB::register_class<VDAsaiKinematic>();
   ClassDB::register_class<VDAsaiSteeringData>();
   ClassDB::register_class<VDAsaiState>();
-  ClassDB::register_class<VDAsaiCombinedBehavior>();
-  ClassDB::register_class<VDAsaiTargetBehavior>();
-  ClassDB::register_class<VDAsaiFacingBehavior>();
-  ClassDB::register_class<VDAsaiNearingBehavior>();
+
+  ClassDB::register_class<VDAsaiBehaviorSeek>();
+  ClassDB::register_class<VDAsaiBehaviorFlee>();
+  ClassDB::register_class<VDAsaiBehaviorPursue>();
+  ClassDB::register_class<VDAsaiBehaviorEvade>();
+  ClassDB::register_class<VDAsaiBehaviorArrive>();
+  ClassDB::register_class<VDAsaiBehaviorLeave>();
+  ClassDB::register_class<VDAsaiBehaviorAlign>();
+  ClassDB::register_class<VDAsaiBehaviorFace>();
   /*
   ClassDB::register_class<VDAsaiBehaviorState>();
   ClassDB::register_class<VDAsaiGroupBehaviorState>();

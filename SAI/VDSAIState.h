@@ -14,9 +14,12 @@ protected:
 	Vector3 velocity = Vector3(0, 0, 0);
 	Vector3 position = Vector3(0, 0, 0);
 	float orientation = 0.0;
+	float rotation = 0.0;
 
 	float max_velocity = 1.0;
 	float max_force = 1.0;
+	float max_rotation = 0.0;
+	float max_orientating_force = 1.0;
 	float mass = 1.0;
 public:
 	VDAsaiKinematic();
@@ -27,10 +30,17 @@ public:
 	Vector3 get_position() const;
 	void set_orientation(float orientation);
 	float get_orientation() const;
+	void set_rotation(float rotation);
+	float get_rotation() const;
+
 	void set_max_velocity(float max_velocity);
 	float get_max_velocity() const;
 	void set_max_force(float max_force);
 	float get_max_force() const;
+	void set_max_rotation(float max_rotation);
+	float get_max_rotation() const;
+	void set_max_orientating_force(float max_force);
+	float get_max_orientating_force() const;
 	void set_mass(float mass);
 	float get_mass() const;
 };
@@ -66,38 +76,23 @@ protected:
 		scale = MIN(scale, 1.0);
 		return vector * scale;
 	}
-protected:
     static void _bind_methods();
 
-	StringName kinematic_param_key;
+	StringName kinematic_key;
 
 	virtual Ref<VDAsaiKinematic> _get_kinematic(Ref<VDAcContext> context);
 	virtual Ref<VDAsaiSteeringData> _get_steering(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta);
-	virtual void _apply_steering(Ref<VDAsaiSteeringData> steering, Ref<VDAcContext> context, float delta);
+	virtual void _apply_steering(Vector3 displacement, float orientation, Ref<VDAcContext> context, float delta);
+
+	void apply_previous_steering(Ref<VDAsaiKinematic> kinematic, Ref<VDAcContext> context, float delta);
+	void update_kinematic(Ref<VDAsaiKinematic> kinematic, Ref<VDAsaiSteeringData> steering, float delta);
 public:
 	VDAsaiState();
 
-	virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) override;
-	void set_kinematic_param_key(StringName param_key);
-	StringName get_kinematic_param_key() const;
-};
-//////////
-// VDAsaiCombinedBehavior / MoveManager
-//////////
-class VDAsaiCombinedBehavior : public VDAsaiState {
-	GDCLASS(VDAsaiCombinedBehavior, VDAsaiState);
-protected:
-    static void _bind_methods();
-
-	Vector<Ref<VDAsaiState>> behaviors;
-public:
-	VDAsaiCombinedBehavior();
+	static float map_to_range(float rotation);
 
 	virtual bool tick(Ref<VDAcContext> context, Ref<VDAcStateStructure> structure, float delta) override;
-
-	void set_behaviors(Vector<Ref<VDAsaiState>> new_behaviors);
-	void set_behaviors_open(Array new_behaviors);
-	Vector<Ref<VDAsaiState>> get_behaviors() const;
-	Array get_behaviors_open() const;
+	void set_kinematic_key(StringName key);
+	StringName get_kinematic_key() const;
 };
 #endif

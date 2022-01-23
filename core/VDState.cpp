@@ -458,6 +458,7 @@ void VDAcContext::_bind_methods() {
 
   ClassDB::bind_method(D_METHOD("set_context_value", "key", "value", "notify"), &VDAcContext::set_context_value, DEFVAL(true));
   ClassDB::bind_method(D_METHOD("get_context_value", "key"), &VDAcContext::get_context_value);
+  ClassDB::bind_method(D_METHOD("has_context_param", "key"), &VDAcContext::has_context_param);
 
   ClassDB::bind_method(D_METHOD("add_active_structure", "structure"), &VDAcContext::add_active_structure);
   ClassDB::bind_method(D_METHOD("remove_active_structure", "structure"), &VDAcContext::remove_active_structure);
@@ -575,7 +576,7 @@ Variant VDAcContext::get_context_value(StringName key) const {
 }
 
 bool VDAcContext::has_context_param(StringName key) {
-  return param_keys.find(key);
+  return params.has(key);
 }
 
 void VDAcContext::set_owning_automata(Ref<VDAcAutomata> automata) {

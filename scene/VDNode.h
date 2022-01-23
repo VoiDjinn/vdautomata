@@ -5,6 +5,12 @@
 #include "../core/VDState.h"
 #include "../core/VDAutomata.h"
 
+/// TODO:
+/*
+ *
+ * - State-addition: get_required_keys + Parameter-GUI as seen in AnimationTree
+ *
+ */
 class VDAcNode : public Node {
     GDCLASS(VDAcNode, Node);
 

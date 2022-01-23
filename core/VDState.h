@@ -4,7 +4,6 @@
 #include "core/resource.h"
 #include "scene/main/scene_tree.h"
 #include "./VDAutomata.h"
-#include "../../vdcore/VDCore.h"
 
 class VDAcContext;
 class VDAcStateData;

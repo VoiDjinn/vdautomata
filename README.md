@@ -1,8 +1,10 @@
 # (WIP) VDAutomata
 
+<!--
 <p align="center">
-    <img src="_vda_logo_large.svg" width="400" alt="VDAutomata logo">
+    <img src="_vdautomata_logo.svg" width="400" alt="VDAutomata logo">
 </p>
+-->
 
 A Godot Engine module for native automation.
 
